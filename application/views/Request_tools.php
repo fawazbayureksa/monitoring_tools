@@ -37,42 +37,9 @@
                                 <label class="font-weight-bold">NAME & NRP</label>
                                 <select name="mechanic_data" class="form-control select2" required>
                                     <option value="">Pilih Mekanik...</option>
-                                    <option value="83101011|AHMAD DARMAWAN">83101011 - AHMAD DARMAWAN</option>
-                                    <option value="83101013|ANDI USRIADI">83101013 - ANDI USRIADI</option>
-                                    <option value="82111006|CHANDRA ALIM SAPUTRO">82111006 - CHANDRA ALIM SAPUTRO</option>
-                                    <option value="80111243|DANI RAMDANI">80111243 - DANI RAMDANI</option>
-                                    <option value="80114043|FAIZAL RASYID">80114043 - FAIZAL RASYID</option>
-                                    <option value="83101016|HAMZAH">83101016 - HAMZAH</option>
-                                    <option value="81112005|JOKO PANGESTU">81112005 - JOKO PANGESTU</option>
-                                    <option value="81307020|M RIZAL MANSUR">81307020 - M RIZAL MANSUR</option>
-                                    <option value="83107026|M. BASO IQBAL ZAKARIA">83107026 - M. BASO IQBAL ZAKARIA</option>
-                                    <option value="83102009|MUH. ALWI">83102009 - MUH. ALWI</option>
-                                    <option value="80112125|RIZAL PRISTANTO">80112125 - RIZAL PRISTANTO</option>
-                                    <option value="82211002|RUDHI MARWANTO">82211002 - RUDHI MARWANTO</option>
-                                    <option value="83110019|RUSDI">83110019 - RUSDI</option>
-                                    <option value="83105006|SYAMSU ALAM">83105006 - SYAMSU ALAM</option>
-                                    <option value="80105068|TULUS WAHYONO">80105068 - TULUS WAHYONO</option>
-                                    <option value="83107021|ZULFIEKAR SURYADI">83107021 - ZULFIEKAR SURYADI</option>
-
-                                    <option value="702210275|ALIF AKBAR NUR 'AZIZI">702210275 - ALIF AKBAR NUR 'AZIZI</option>
-                                    <option value="702210276|AMRUL MU'MININ">702210276 - AMRUL MU'MININ</option>
-                                    <option value="702211214|KIKI RUDIANSYAH">702211214 - KIKI RUDIANSYAH</option>
-                                    <option value="70216365|MIFTAKHUR ROHMAN">70216365 - MIFTAKHUR ROHMAN</option>
-                                    <option value="702211211|MUHAMMAD FICRI KABAN">702211211 - MUHAMMAD FICRI KABAN</option>
-                                    <option value="702220380|NUGRI ARIS">702220380 - NUGRI ARIS</option>
-                                    <option value="702220942|PRAYOGY">702220942 - PRAYOGY</option>
-                                    <option value="702220941|NUR BAYU FIRMANSYAH">702220941 - NUR BAYU FIRMANSYAH</option>
-                                    <option value="702221338|IHSAN MUNADI">702221338 - IHSAN MUNADI</option>
-                                    <option value="702221331|AHMAD DHANI">702221331 - AHMAD DHANI</option>
-                                    <option value="702221341|SUNANDAR">702221341 - SUNANDAR</option>
-                                    <option value="702221335|ISWAN S">702221335 - ISWAN S</option>
-                                    <option value="702221279|HASRUL">702221279 - HASRUL</option>
-                                    <option value="702221278|DIRWAN WIRANTO H">702221278 - DIRWAN WIRANTO H</option>
-                                    <option value="702240283|DODIK MELFIANTO">702240283 - DODIK MELFIANTO</option>
-                                    <option value="702240282|GHAIRIL ZULTANI">702240282 - GHAIRIL ZULTANI</option>
-                                    <option value="702210187|MOCH RIZAL FIRMANSYAH">702210187 - MOCH RIZAL FIRMANSYAH</option>
-                                    <option value="702250517|MURDIANTO">702250517 - MURDIANTO</option>
-                                    <option value="702240756|M IRSYAD">702240756 - M IRSYAD</option>
+                                    <?php foreach (MECHANIC_LIST as $nrp => $name): ?>
+                                        <option value="<?= $nrp ?>|<?= $name ?>"><?= $nrp ?> - <?= $name ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>
@@ -119,13 +86,9 @@
                             <div class="form-group">
                                 <label class="font-weight-bold">LOCATION / SITE</label>
                                 <select class="form-control select2" name="site_location" style="width: 100%;">
-                                    <option value="WORKSHOP - UPG" selected>WORKSHOP</option>
-                                    <option value="SITE - KONUT">FIELD UPG</option>
-                                    <option value="SITE - MATARAPE">SITE - POMALAA</option>
-                                    <option value="SITE - ROUTA">SITE - LANGGIKIMA</option>
-                                    <option value="SITE - KONUT">SITE - ROUTA</option>
-                                    <option value="SITE - MATARAPE">SITE - MOROWALI</option>
-                                    <option value="SITE - ROUTA">SITE - KENDARI</option>
+                                    <?php foreach (SITE_LOCATION_LIST as $site): ?>
+                                        <option value="<?= $site['value'] ?>"<?= !empty($site['selected']) ? ' selected' : '' ?>><?= $site['label'] ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
                         </div>

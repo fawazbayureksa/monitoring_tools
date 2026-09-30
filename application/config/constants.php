@@ -83,3 +83,65 @@ defined('EXIT_USER_INPUT')     OR define('EXIT_USER_INPUT', 7); // invalid user 
 defined('EXIT_DATABASE')       OR define('EXIT_DATABASE', 8); // database error
 defined('EXIT__AUTO_MIN')      OR define('EXIT__AUTO_MIN', 9); // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      OR define('EXIT__AUTO_MAX', 125); // highest automatically-assigned error code
+
+/*
+|--------------------------------------------------------------------------
+| Application Option Lists
+|--------------------------------------------------------------------------
+|
+| Option lists for the request tools form. Kept here so the view stays
+| markup-only and the lists can be edited in one place.
+|
+| MECHANIC_LIST is [nrp => name]. The request form submits it back as the
+| "nrp|name" string, which Request_tools::submit() splits back apart.
+|
+*/
+defined('MECHANIC_LIST') OR define('MECHANIC_LIST', array(
+	'83101011'  => 'AHMAD DARMAWAN',
+	'83101013'  => 'ANDI USRIADI',
+	'82111006'  => 'CHANDRA ALIM SAPUTRO',
+	'80111243'  => 'DANI RAMDANI',
+	'80114043'  => 'FAIZAL RASYID',
+	'83101016'  => 'HAMZAH',
+	'81112005'  => 'JOKO PANGESTU',
+	'81307020'  => 'M RIZAL MANSUR',
+	'83107026'  => 'M. BASO IQBAL ZAKARIA',
+	'83102009'  => 'MUH. ALWI',
+	'80112125'  => 'RIZAL PRISTANTO',
+	'82211002'  => 'RUDHI MARWANTO',
+	'83110019'  => 'RUSDI',
+	'83105006'  => 'SYAMSU ALAM',
+	'80105068'  => 'TULUS WAHYONO',
+	'83107021'  => 'ZULFIEKAR SURYADI',
+	'702210275' => 'ALIF AKBAR NUR \'AZIZI',
+	'702210276' => 'AMRUL MU\'MININ',
+	'702211214' => 'KIKI RUDIANSYAH',
+	'70216365'  => 'MIFTAKHUR ROHMAN',
+	'702211211' => 'MUHAMMAD FICRI KABAN',
+	'702220380' => 'NUGRI ARIS',
+	'702220942' => 'PRAYOGY',
+	'702220941' => 'NUR BAYU FIRMANSYAH',
+	'702221338' => 'IHSAN MUNADI',
+	'702221331' => 'AHMAD DHANI',
+	'702221341' => 'SUNANDAR',
+	'702221335' => 'ISWAN S',
+	'702221279' => 'HASRUL',
+	'702221278' => 'DIRWAN WIRANTO H',
+	'702240283' => 'DODIK MELFIANTO',
+	'702240282' => 'GHAIRIL ZULTANI',
+	'702210187' => 'MOCH RIZAL FIRMANSYAH',
+	'702250517' => 'MURDIANTO',
+	'702240756' => 'M IRSYAD',
+));
+
+// A few sites intentionally share a stored value and differ only by label,
+// so this is a list of value/label pairs rather than a value => label map.
+defined('SITE_LOCATION_LIST') OR define('SITE_LOCATION_LIST', array(
+	array('value' => 'WORKSHOP - UPG',    'label' => 'WORKSHOP',        'selected' => TRUE),
+	array('value' => 'SITE - KONUT',       'label' => 'FIELD UPG'),
+	array('value' => 'SITE - MATARAPE',    'label' => 'SITE - POMALAA'),
+	array('value' => 'SITE - ROUTA',       'label' => 'SITE - LANGGIKIMA'),
+	array('value' => 'SITE - KONUT',       'label' => 'SITE - ROUTA'),
+	array('value' => 'SITE - MATARAPE',    'label' => 'SITE - MOROWALI'),
+	array('value' => 'SITE - ROUTA',       'label' => 'SITE - KENDARI'),
+));
