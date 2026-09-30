@@ -1,0 +1,93 @@
+  
+    /* CSS Custom Sidebar */
+    body.sidebar-collapse .sidebar-custom .btn-text {
+        display: none !important;
+    }
+    body.sidebar-collapse .user-panel .info {
+        display: none !important;
+    }
+    body.sidebar-collapse .sidebar-custom .btn {
+        text-align: center !important; 
+        padding-left: 0;
+        padding-right: 0;
+    }
+    body.sidebar-collapse .sidebar-custom .btn i {
+        margin-right: 0 !important;
+    }
+
+@media print {
+    @page {
+        size: A4;             /* Paksa ukuran kertas A4 */
+        margin: 15mm 15mm;    /* Margin: Atas/Bawah 15mm, Kiri/Kanan 15mm */
+    }
+
+    /* 2. Sembunyikan semua elemen website */
+    body * {
+        visibility: hidden;
+    }
+
+    /* 3. Tampilkan hanya area formulir BAKK */
+    #printableArea, #printableArea * {
+        visibility: visible;
+    }
+
+    /* 4. Posisikan area cetak di pojok kiri atas */
+    #printableArea {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;       /* Gunakan lebar penuh kertas */
+        margin: 0;
+        padding: 0;
+        background-color: white !important;
+        color: black !important;
+    }
+
+    /* 5. Paksa Background Color tetap muncul (misal: header tabel abu-abu) */
+    * {
+        -webkit-print-color-adjust: exact !important;   /* Chrome/Safari */
+        print-color-adjust: exact !important;           /* Firefox */
+    }
+
+    /* 6. Hilangkan elemen yang tidak perlu */
+    .btn, .close, .modal-footer, .no-print {
+        display: none !important;
+    }
+
+    /* 7. Ubah Tampilan Input menjadi teks garis bawah (agar rapi di kertas) */
+    input.form-control, textarea.form-control {
+        border: none !important;
+        border-bottom: 1px dotted #000 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        height: auto !important;
+        resize: none;
+        font-size: 12pt; /* Ukuran font standar surat */
+        color: black !important;
+    }
+
+    /* 8. Border Tabel Hitam Pekat */
+    .table-bordered th, .table-bordered td {
+        border: 1px solid #000 !important;
+    }
+    
+    /* 9. Font Body disesuaikan untuk A4 */
+    body {
+        font-family: "Times New Roman", Times, serif; /* Font resmi dokumen */
+        font-size: 12pt;
+    }
+}
+
+.left { text-align: left;}
+.right { text-align: right;}
+.center { text-align: center;}
+.justify { text-align: justify;}
+.table-danger-custom {
+    background-color: #f8d7da !important;
+}
+/* Efek teks merah tebal */
+.text-overdue {
+    color: #721c24;
+    font-weight: bold;
+}
