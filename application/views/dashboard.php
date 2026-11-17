@@ -127,7 +127,12 @@
                                     <td><?= $d['request_number'] ?></td>
                                     <td><strong><?= $d['tool_name'] ?></strong><br><small class="text-muted">(<?= $d['part_number'] ?>)</small></td>
                                     <td><?= $d['site_location'] ?><br><small class="text-muted"><?= $d['user_name'] ?> (<?= $d['nrp'] ?>)</small></td>
-                                    <td><?= $d['shipped_at'] ? date('d M Y H:i', strtotime($d['shipped_at'])) : '<span class="text-muted">-</span>' ?></td>
+                                    <td>
+                                        <?= $d['shipped_at'] ? date('d M Y H:i', strtotime($d['shipped_at'])) : '<span class="text-muted">-</span>' ?>
+                                        <?php if (!empty($d['shipping_receipt'])): ?>
+                                            <br><a href="<?= base_url('assets/uploads/shipping_receipt/' . $d['shipping_receipt']) ?>" target="_blank" class="badge badge-info mt-1"><i class="feather icon-file-text mr-1"></i>Lihat Resi</a>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="text-center">
                                         <?php if ($late): ?>
                                             <span class="badge badge-danger"><?= floor($d['hours_in_delivery'] / 24) ?> Hari (Telat)</span>
@@ -237,7 +242,15 @@
                                         <?php endif; ?>
                                     </td>
                                     <td><strong><?= $req['tool_name'] ?></strong><br><small class="text-muted">(<?= $req['part_number'] ?>)</small></td>
-                                    <td><strong><?= $req['borrower_name'] ?></strong><br><small class="text-muted">(<?= $req['borrower_nrp'] ?>)</small></td>
+                                    <td>
+                                        <strong><?= $req['borrower_name'] ?></strong><br><small class="text-muted">(<?= $req['borrower_nrp'] ?>)</small>
+                                        <?php if (!empty($req['shipping_receipt'])): ?>
+                                            <br><a href="<?= base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) ?>" target="_blank" class="badge badge-info mt-1"><i class="feather icon-file-text mr-1"></i>Resi</a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($req['received_proof'])): ?>
+                                            <a href="<?= base_url('assets/uploads/received_proof/' . $req['received_proof']) ?>" target="_blank" class="badge badge-success mt-1" title="<?= !empty($req['received_notes']) ? htmlspecialchars($req['received_notes']) : 'Bukti Terima' ?>"><i class="feather icon-camera mr-1"></i>Bukti Terima</a>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= $req['site_location'] ?></td>
                                     <td>
                                         <?php 
@@ -288,18 +301,21 @@
             // Ambil ID User yang sedang login saat ini
             $user_id_saat_ini = $this->session->userdata('user_id');
             
-            // HANYA munculkan tombol jika ID peminjam sama dengan ID yang sedang login
-            if ($req['user_id'] == $user_id_saat_ini): 
+            // HANYA munculkan tombol jika ID peminjam sama dengan ID yang sedang login atau master
+            if ($req['user_id'] == $user_id_saat_ini || $role == 'master'): 
             ?>
-                <form action="<?= site_url('dashboard/process_action') ?>" method="post" class="d-inline">
-                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                    <input type="hidden" name="tool_id" value="<?= $req['tool_id'] ?>">
-                    <input type="hidden" name="qty_requested" value="<?= $req['qty_requested'] ?>">
-                    <input type="hidden" name="status_action" value="receive">
-                    <button type="submit" class="btn btn-success btn-sm text-white shadow-sm" onclick="return confirm('Apakah Anda yakin telah menerima fisik alat ini?');">
-                        <i class="fas fa-hand-holding-box mr-1"></i> Receive Tool
-                    </button>
-                </form>
+                <button type="button" class="btn btn-success btn-sm text-white shadow-sm btn-receive-tool"
+                    data-toggle="modal" data-target="#modal-receive-tool"
+                    data-id="<?= $req['id'] ?>"
+                    data-toolid="<?= $req['tool_id'] ?>"
+                    data-qty="<?= $req['qty_requested'] ?>"
+                    data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>"
+                    data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>"
+                    data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
+                    data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
+                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>">
+                    <i class="fas fa-hand-holding-box mr-1"></i> Receive Tool
+                </button>
             <?php else: ?>
                 <!-- Jika yang login bukan si peminjam, tampilkan tombol kuning terkunci -->
                 <button class="btn btn-sm btn-warning text-dark font-weight-bold shadow-sm" disabled>
@@ -428,7 +444,7 @@
         <h4 class="modal-title"><i class="feather icon-inbox mr-2"></i>Validation</h4>
         <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
-      <form action="<?= site_url('dashboard/process_action') ?>" method="POST">
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
         <div class="modal-body">
           <input type="hidden" name="request_id" id="rel_req_id">
           <input type="hidden" name="tool_id" id="rel_tool_id">
@@ -448,6 +464,12 @@
           <div class="form-group">
             <label>Catatan Admin (Opsional)</label>
             <input type="text" name="notes" class="form-control" placeholder="Misal: Sudah dicek bersama...">
+          </div>
+
+          <div class="form-group text-left" id="group-rel-shipping-receipt">
+            <label class="font-weight-bold"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Opsional / Gambar & PDF)</label>
+            <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+            <small class="text-muted">Maksimal 5MB. Format: JPG, PNG, atau PDF.</small>
           </div>
           
           <button type="button" class="btn btn-danger btn-block mb-3 btn-trigger-decline">
@@ -477,7 +499,7 @@
         <h4 class="modal-title text-white"><i class="feather icon-check-square mr-2"></i>Supervisor Approval</h4>
         <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
-      <form action="<?= site_url('dashboard/process_action') ?>" method="POST">
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
         <div class="modal-body">
           <input type="hidden" name="status_action" value="approve_spv">
           <input type="hidden" name="request_id" id="spv_req_id">
@@ -496,6 +518,12 @@
           <div class="form-group">
             <label class="font-weight-bold">Catatan Supervisor (Opsional)</label>
             <textarea name="notes" id="spv_notes_input" class="form-control" rows="2" placeholder="Catatan persetujuan supervisor..."></textarea>
+          </div>
+
+          <div class="form-group text-left">
+            <label class="font-weight-bold"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Foto / PDF)</label>
+            <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+            <small class="text-muted">Format: JPG, PNG, atau PDF (Maks. 5MB).</small>
           </div>
           
           <button type="button" class="btn btn-outline-danger btn-block mb-3 btn-trigger-decline-spv">
@@ -537,6 +565,57 @@
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
           <button type="submit" class="btn btn-danger"><i class="feather icon-navigation mr-1"></i>Submit Decline</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-receive-tool">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h4 class="modal-title text-white"><i class="feather icon-check-circle mr-2"></i>Konfirmasi Penerimaan Alat</h4>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" name="status_action" value="receive">
+          <input type="hidden" name="request_id" id="recv_req_id">
+          <input type="hidden" name="tool_id" id="recv_tool_id">
+          <input type="hidden" name="qty_requested" id="recv_qty">
+
+          <div class="text-center mb-3">
+            <i class="feather icon-package f-40 text-success mb-2 d-block"></i>
+            <h6 class="font-weight-bold text-muted mb-1" id="recv_reqnum"></h6>
+            <h4 id="recv_tool_name" class="font-weight-bold text-dark mb-1">Nama Alat</h4>
+            <p class="text-muted mb-1">Peminjam: <strong id="recv_user"></strong></p>
+            <p class="text-muted mb-2">Lokasi: <strong id="recv_loc"></strong></p>
+            <div id="recv_resi_wrapper" style="display:none;" class="mb-2">
+              <a href="#" id="recv_resi_link" target="_blank" class="btn btn-sm btn-outline-info">
+                <i class="feather icon-file-text mr-1"></i>Lihat Resi Pengiriman
+              </a>
+            </div>
+          </div>
+
+          <div class="alert alert-info py-2 px-3 small">
+            <i class="feather icon-info mr-1"></i>Silakan upload bukti fisik alat (foto alat / form serah terima) dan masukkan catatan kondisi saat diterima di lapangan.
+          </div>
+
+          <div class="form-group text-left">
+            <label class="font-weight-bold"><i class="feather icon-camera mr-1"></i>Upload Bukti Penerimaan Alat <span class="text-danger">*</span></label>
+            <input type="file" name="received_proof" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required>
+            <small class="text-muted">Wajib diisi (JPG, PNG, atau PDF. Maks. 5MB).</small>
+          </div>
+
+          <div class="form-group text-left">
+            <label class="font-weight-bold">Catatan Kondisi Saat Diterima (Opsional)</label>
+            <textarea name="received_notes" class="form-control" rows="2" placeholder="Contoh: Alat diterima dalam kondisi lengkap dan baik..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i>Konfirmasi Terima Alat</button>
         </div>
       </form>
     </div>
@@ -659,6 +738,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (document.getElementById('disp-reqnum-return')) {
                     document.getElementById('disp-reqnum-return').innerText = reqNum;
+                }
+            }
+        }
+
+        const btnReceive = e.target.closest('.btn-receive-tool');
+        if (btnReceive) {
+            const reqId = btnReceive.getAttribute('data-id');
+            const toolId = btnReceive.getAttribute('data-toolid');
+            const qty = btnReceive.getAttribute('data-qty');
+            const toolName = btnReceive.getAttribute('data-tool');
+            const user = btnReceive.getAttribute('data-user');
+            const loc = btnReceive.getAttribute('data-loc');
+            const reqNum = btnReceive.getAttribute('data-reqnum');
+            const resiUrl = btnReceive.getAttribute('data-resi');
+
+            if (document.getElementById('recv_req_id')) {
+                document.getElementById('recv_req_id').value = reqId;
+                document.getElementById('recv_tool_id').value = toolId;
+                document.getElementById('recv_qty').value = qty;
+                document.getElementById('recv_reqnum').innerText = reqNum;
+                document.getElementById('recv_tool_name').innerText = toolName;
+                document.getElementById('recv_user').innerText = user;
+                document.getElementById('recv_loc').innerText = loc;
+
+                const resiWrapper = document.getElementById('recv_resi_wrapper');
+                const resiLink = document.getElementById('recv_resi_link');
+                if (resiUrl) {
+                    resiLink.href = resiUrl;
+                    resiWrapper.style.display = 'block';
+                } else {
+                    resiWrapper.style.display = 'none';
                 }
             }
         }

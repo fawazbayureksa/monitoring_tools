@@ -115,7 +115,7 @@ public function generate_request_number() {
 
     // Monitoring pengiriman: request yang sudah dirilep tapi belum dikonfirmasi penerima
     public function get_in_delivery() {
-        $this->db->select('requests.id, requests.request_number, requests.site_location, requests.status, requests.shipped_at, tools.tool_name, tools.part_number, users.name as user_name, users.nrp, TIMESTAMPDIFF(HOUR, COALESCE(requests.shipped_at, requests.created_at), NOW()) as hours_in_delivery', FALSE);
+        $this->db->select('requests.id, requests.request_number, requests.site_location, requests.status, requests.shipped_at, requests.shipping_receipt, requests.user_id, requests.tool_id, requests.qty_requested, tools.tool_name, tools.part_number, users.name as user_name, users.nrp, TIMESTAMPDIFF(HOUR, COALESCE(requests.shipped_at, requests.created_at), NOW()) as hours_in_delivery', FALSE);
         $this->db->from('requests');
         $this->db->join('tools', 'tools.id = requests.tool_id');
         $this->db->join('users', 'users.id = requests.user_id');

@@ -149,6 +149,12 @@
 
                                     <?php if ($current_status == 'Completed'): ?>
                                         <span class="badge badge-success">Completed</span>
+                                        <?php if (!empty($h['shipping_receipt'])): ?>
+                                            <br><a href="<?= base_url('assets/uploads/shipping_receipt/' . $h['shipping_receipt']) ?>" target="_blank" class="badge badge-info mt-1"><i class="feather icon-file-text mr-1"></i>Resi</a>
+                                        <?php endif; ?>
+                                        <?php if (!empty($h['received_proof'])): ?>
+                                            <a href="<?= base_url('assets/uploads/received_proof/' . $h['received_proof']) ?>" target="_blank" class="badge badge-primary mt-1" title="<?= !empty($h['received_notes']) ? htmlspecialchars($h['received_notes']) : '' ?>"><i class="feather icon-camera mr-1"></i>Bukti Terima</a>
+                                        <?php endif; ?>
 
                                     <?php elseif ($current_status == 'Declined'): ?>
                                         <span class="badge badge-danger">Declined</span>

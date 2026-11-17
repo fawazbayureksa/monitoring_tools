@@ -101,8 +101,9 @@ Every request follows a deterministic finite state machine:
    - Locked for Toolkeeper & Leader; interactive button `Approve SPV` shown only to `supervisor` and `master`.
 3. **`Waiting Received`**:
    - Tool is in delivery. `requests.shipped_at` is stamped.
+   - Resi pengiriman can be uploaded by Toolkeeper (on `release`) or SPV (on `approve_spv`) to `assets/uploads/shipping_receipt/`.
    - Automatically counted in dashboard widget **"Delivery to Site"** (`TIMESTAMPDIFF` against SLA, default 2 days).
-   - Recipient at site sees green button `Receive Tool`.
+   - Recipient Leader at site clicks `Receive Tool` which opens `#modal-receive-tool`, requiring upload of physical receipt proof (`received_proof`) to `assets/uploads/received_proof/` and optional receipt notes before transitioning to `Borrowed`.
 4. **`Borrowed`**:
    - Physical tool is with borrower.
    - Automatically monitored for due dates via widget **"Need to Return"** based on `requests.return_date_est`.
@@ -135,7 +136,7 @@ Every request follows a deterministic finite state machine:
 - **[User_management.php](file:///Users/fawwazbayureksa/Documents/project/akbar/monitoring_tools/application/controllers/User_management.php)**:
   - CRUD for user accounts (`master` access only).
 - **[Seeder.php](file:///Users/fawwazbayureksa/Documents/project/akbar/monitoring_tools/application/controllers/Seeder.php)**:
-  - CLI/Web seeder runner (e.g. `php index.php seeder spv`).
+  - CLI/Web seeder runner (e.g. `php index.php seeder spv`, `php index.php seeder migration_005`).
 
 ### Models (`application/models/`)
 - **[M_Requests.php](file:///Users/fawwazbayureksa/Documents/project/akbar/monitoring_tools/application/models/M_Requests.php)**:
@@ -143,11 +144,12 @@ Every request follows a deterministic finite state machine:
 - **`M_Tools.php`**: Inventory data queries.
 - **`M_User.php`**: User management queries.
 - **`M_Auth.php`**: Credentials verification.
+- **`M_Auth.php`**: Credentials verification.
 
 ### Views (`application/views/`)
 - **[dashboard.php](file:///Users/fawwazbayureksa/Documents/project/akbar/monitoring_tools/application/views/dashboard.php)**:
   - Summary cards, "Delivery to Site" table, "Need to Return" table, and "Currently Borrowed Tools" table.
-  - Modals: `#modal-submitted` (Validation/Release), `#modal-spv-approval` (Supervisor Approval), `#modal-returned` (Return Inspection), `#modal-declined` (Decline with Reason).
+  - Modals: `#modal-submitted` (Validation/Release with resi upload), `#modal-spv-approval` (Supervisor Approval with resi upload), `#modal-receive-tool` (Leader receipt with proof upload), `#modal-returned` (Return Inspection), `#modal-declined` (Decline with Reason).
 - **`templates/sidebar.php`**, **`templates/header.php`**, **`templates/footer.php`**: Common layout and navigation.
 
 ---
@@ -159,6 +161,7 @@ Database files reside in `Database/`:
 - **`Database/002_delivery_tracking.sql`**: Added `shipped_at DATETIME NULL` to `requests` table.
 - **`Database/003_add_supervisor_role.sql`**: Updated `users.role` ENUM to include `'supervisor'`.
 - **`Database/004_seed_supervisor_account.sql`**: Seeded `spv` and `spv_field` accounts.
+- **`Database/005_add_shipping_and_receipt_proof.sql`**: Added `shipping_receipt`, `received_proof`, `received_at`, and `received_notes` to `requests` table.
 
 ### Key Database Tables
 1. **`users`**:
@@ -166,7 +169,7 @@ Database files reside in `Database/`:
 2. **`tools`**:
    - `id` (INT PK AI), `tool_name`, `part_number`, `type`, `quantity` (INT), `rack_location`, `condition_status`.
 3. **`requests`**:
-   - `id` (INT PK AI), `request_number` (VARCHAR 50), `user_id` (requester ID), `tool_id`, `borrower_name`, `borrower_nrp`, `qty_requested`, `site_location`, `borrow_date`, `return_date_est`, `return_date_actual`, `status`, `shipped_at`, `notes`, `created_at`, `is_read`.
+   - `id` (INT PK AI), `request_number` (VARCHAR 50), `user_id` (requester ID), `tool_id`, `borrower_name`, `borrower_nrp`, `qty_requested`, `site_location`, `borrow_date`, `return_date_est`, `return_date_actual`, `status`, `shipped_at`, `shipping_receipt`, `received_proof`, `received_at`, `received_notes`, `notes`, `created_at`, `is_read`.
 4. **`bakk`**:
    - `id`, `request_id`, `tool_id`, `condition_status` (RUSAK / HILANG), `upload_status`, `file_path`, `notes`, `created_at`.
 

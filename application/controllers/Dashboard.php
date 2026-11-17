@@ -59,9 +59,72 @@ public function index() {
             // Toolkeeper melepas alat ke lapangan, leader yang konfirmasi terima di site
             $data_update['status'] = 'Waiting Received'; 
             $data_update['shipped_at'] = date('Y-m-d H:i:s');
+            if (!empty($notes)) {
+                $data_update['notes'] = $notes;
+            }
+
+            if (!empty($_FILES['shipping_receipt']['name'])) {
+                $upload_path = './assets/uploads/shipping_receipt/';
+                if (!is_dir($upload_path)) {
+                    mkdir($upload_path, 0777, true);
+                }
+                $config_upload = [
+                    'upload_path'   => $upload_path,
+                    'allowed_types' => 'pdf|jpg|jpeg|png',
+                    'max_size'      => 5120,
+                    'file_name'     => 'RESI_' . $request_id . '_' . time()
+                ];
+                $this->load->library('upload', $config_upload);
+                $this->upload->initialize($config_upload);
+
+                if ($this->upload->do_upload('shipping_receipt')) {
+                    $up_data = $this->upload->data();
+                    $data_update['shipping_receipt'] = $up_data['file_name'];
+                }
+            }
         } 
         elseif ($action == 'receive') {
-            // INI FUNGSI BARU: Leader menekan tombol Receive, status resmi dipinjam
+            // Leader menekan tombol Receive, status resmi dipinjam
+            $user_id_saat_ini = $this->session->userdata('user_id');
+            $req_data = $this->db->get_where('requests', ['id' => $request_id])->row_array();
+            
+            if (!$req_data || ($req_data['user_id'] != $user_id_saat_ini && $role != 'master')) {
+                redirect('dashboard');
+                return;
+            }
+
+            if (!empty($_FILES['received_proof']['name'])) {
+                $upload_path = './assets/uploads/received_proof/';
+                if (!is_dir($upload_path)) {
+                    mkdir($upload_path, 0777, true);
+                }
+                $config_upload = [
+                    'upload_path'   => $upload_path,
+                    'allowed_types' => 'pdf|jpg|jpeg|png',
+                    'max_size'      => 5120,
+                    'file_name'     => 'RECV_' . $request_id . '_' . time()
+                ];
+                $this->load->library('upload', $config_upload);
+                $this->upload->initialize($config_upload);
+
+                if ($this->upload->do_upload('received_proof')) {
+                    $up_data = $this->upload->data();
+                    $data_update['received_proof'] = $up_data['file_name'];
+                } else {
+                    $error = $this->upload->display_errors();
+                    echo "<script>alert('Gagal Upload Bukti Penerimaan: " . strip_tags($error) . "'); window.history.back();</script>";
+                    return;
+                }
+            } else {
+                echo "<script>alert('Wajib mengunggah bukti fisik penerimaan alat (Foto/PDF)!'); window.history.back();</script>";
+                return;
+            }
+
+            $received_notes = $this->input->post('received_notes');
+            if (!empty($received_notes)) {
+                $data_update['received_notes'] = $received_notes;
+            }
+            $data_update['received_at'] = date('Y-m-d H:i:s');
             $data_update['status'] = 'Borrowed';
         }
         elseif ($action == 'send_supervisor') {
@@ -77,6 +140,26 @@ public function index() {
             $data_update['shipped_at'] = date('Y-m-d H:i:s');
             if (!empty($notes)) {
                 $data_update['notes'] = $notes;
+            }
+
+            if (!empty($_FILES['shipping_receipt']['name'])) {
+                $upload_path = './assets/uploads/shipping_receipt/';
+                if (!is_dir($upload_path)) {
+                    mkdir($upload_path, 0777, true);
+                }
+                $config_upload = [
+                    'upload_path'   => $upload_path,
+                    'allowed_types' => 'pdf|jpg|jpeg|png',
+                    'max_size'      => 5120,
+                    'file_name'     => 'RESI_' . $request_id . '_' . time()
+                ];
+                $this->load->library('upload', $config_upload);
+                $this->upload->initialize($config_upload);
+
+                if ($this->upload->do_upload('shipping_receipt')) {
+                    $up_data = $this->upload->data();
+                    $data_update['shipping_receipt'] = $up_data['file_name'];
+                }
             }
         }
         elseif ($action == 'cancel') {
