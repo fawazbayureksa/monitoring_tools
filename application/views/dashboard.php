@@ -214,9 +214,28 @@
                         <tbody>
                             <?php if(!empty($recent_requests)): ?>
                                 <?php foreach ($recent_requests as $req): ?>
-                                <tr>
+                                <?php 
+                                    $is_overdue = false;
+                                    $days_overdue = 0;
+                                    if (in_array($req['status'], ['Borrowed', 'OTW Site', 'OTW Workshop']) && !empty($req['return_date_est'])) {
+                                        $est_time = strtotime($req['return_date_est']);
+                                        if ($est_time < time()) {
+                                            $is_overdue = true;
+                                            $days_overdue = ceil((time() - $est_time) / 86400);
+                                        }
+                                    }
+                                ?>
+                                <tr<?= $is_overdue ? ' class="table-danger"' : '' ?>>
                                     <td><?= $req['request_number'] ?></td>
-                                    <td><?= date('d F Y', strtotime($req['borrow_date'])) ?></td>
+                                    <td>
+                                        <?= date('d F Y', strtotime($req['borrow_date'])) ?>
+                                        <?php if (!empty($req['return_date_est'])): ?>
+                                            <br><small class="<?= $is_overdue ? 'text-danger font-weight-bold' : 'text-muted' ?>">
+                                                <i class="feather icon-calendar mr-1"></i>Est: <?= date('d M Y', strtotime($req['return_date_est'])) ?>
+                                                <?= $is_overdue ? ' (Telat ' . $days_overdue . ' Hari)' : '' ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><strong><?= $req['tool_name'] ?></strong><br><small class="text-muted">(<?= $req['part_number'] ?>)</small></td>
                                     <td><strong><?= $req['borrower_name'] ?></strong><br><small class="text-muted">(<?= $req['borrower_nrp'] ?>)</small></td>
                                     <td><?= $req['site_location'] ?></td>
@@ -226,7 +245,12 @@
                                             elseif ($req['status'] == 'Waiting Approval') echo '<span class="badge badge-dark">Waiting SPV</span>';
                                             elseif ($req['status'] == 'Waiting Received') echo '<span class="badge badge-warning">Waiting Received</span>';
                                             elseif ($req['status'] == 'Validating') echo '<span class="badge badge-warning">Validating</span>';
-                                            elseif ($req['status'] == 'Borrowed') echo '<span class="badge badge-primary">Borrowed</span>';
+                                            elseif ($req['status'] == 'Borrowed') {
+                                                echo '<span class="badge badge-primary">Borrowed</span>';
+                                                if ($is_overdue) {
+                                                    echo '<br><span class="badge badge-danger mt-1" title="Telat ' . $days_overdue . ' Hari"><i class="feather icon-alert-circle mr-1"></i>Lewat Tanggal Pengembalian</span>';
+                                                }
+                                            }
                                             elseif ($req['status'] == 'OTW Site') echo '<span class="badge badge-info">OTW Site</span>';
                                             elseif ($req['status'] == 'OTW Workshop') echo '<span class="badge badge-info">OTW Workshop</span>';
                                             elseif ($req['status'] == 'Returned') echo '<span class="badge badge-success">Returned</span>';
