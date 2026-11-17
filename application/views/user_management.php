@@ -49,6 +49,8 @@
                                         <span class="badge badge-danger">MASTER</span>
                                     <?php elseif($u['role'] == 'admin'): ?>
                                         <span class="badge badge-primary">ADMIN</span>
+                                    <?php elseif($u['role'] == 'supervisor'): ?>
+                                        <span class="badge badge-warning">SUPERVISOR</span>
                                     <?php elseif($u['role'] == 'leader'): ?>
                                         <span class="badge badge-info">LEADER MECHANIC</span>
                                     <?php else: ?>
@@ -102,6 +104,7 @@
                     <select name="role" class="form-control" required>
                         <option value="admin" <?= $u['role'] == 'admin' ? 'selected' : '' ?>>Admin</option>
                         <option value="master" <?= $u['role'] == 'master' ? 'selected' : '' ?>>Master</option>
+                        <option value="supervisor" <?= $u['role'] == 'supervisor' ? 'selected' : '' ?>>Supervisor (SPV)</option>
                         <option value="leader" <?= $u['role'] == 'leader' ? 'selected' : '' ?>>Leader Mechanic</option>
                         <option value="user" <?= $u['role'] == 'user' ? 'selected' : '' ?>>Mechanic</option>
                     </select>
@@ -141,6 +144,7 @@
                 <div class="form-group">
                     <label class="font-weight-bold">Role</label>
                     <select name="role" class="form-control" required>
+                        <option value="supervisor">Supervisor (SPV)</option>
                         <option value="leader">Leader Mechanic</option>
                         <option value="user">Mechanic</option>
                     </select>

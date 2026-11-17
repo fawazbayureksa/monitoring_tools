@@ -26,7 +26,7 @@ public function index() {
     
     $data['in_delivery'] = $this->M_Requests->get_in_delivery();
 
-    if ($role == 'admin' || $role == 'master') { 
+    if ($role == 'admin' || $role == 'master' || $role == 'supervisor' || $role == 'spv') { 
         $data['total_borrowed'] = $this->M_Requests->count_active_requests();
         $data['recent_requests'] = $this->M_Requests->get_recent_requests();
         $data['return_reminders'] = $this->M_Requests->get_return_reminders();
@@ -51,8 +51,9 @@ public function index() {
         
         $action = $this->input->post('status_action'); 
         $notes = $this->input->post('notes');
+        $role = $this->session->userdata('role');
 
-    $data_update = array();
+        $data_update = array();
         
         if ($action == 'release') {
             // Toolkeeper melepas alat ke lapangan, leader yang konfirmasi terima di site
@@ -66,10 +67,31 @@ public function index() {
         elseif ($action == 'send_supervisor') {
             $data_update['status'] = 'Waiting Approval';
         }
+        elseif ($action == 'approve_spv') {
+            // SPV menyetujui pengiriman alat ke Site: berstatus Waiting Received & dicatat waktu kirim
+            if ($role != 'master' && $role != 'supervisor' && $role != 'spv') {
+                redirect('dashboard');
+                return;
+            }
+            $data_update['status'] = 'Waiting Received';
+            $data_update['shipped_at'] = date('Y-m-d H:i:s');
+            if (!empty($notes)) {
+                $data_update['notes'] = $notes;
+            }
+        }
         elseif ($action == 'cancel') {
             $data_update['status'] = 'Declined';
             $data_update['notes'] = $notes;
-            $this->M_Requests->return_tool_stock($tool_id, $qty);
+            if (empty($tool_id) || empty($qty)) {
+                $req_data = $this->db->get_where('requests', ['id' => $request_id])->row_array();
+                if ($req_data) {
+                    $tool_id = $req_data['tool_id'];
+                    $qty = $req_data['qty_requested'];
+                }
+            }
+            if (!empty($tool_id) && !empty($qty)) {
+                $this->M_Requests->return_tool_stock($tool_id, $qty);
+            }
         }
         elseif ($action == 'return') {
             $data_update['status'] = 'Returned';

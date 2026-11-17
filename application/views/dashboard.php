@@ -311,7 +311,19 @@
             <?php endif; ?>
 
         <?php elseif ($req['status'] == 'Waiting Approval'): ?>
-            <button class="btn btn-sm btn-dark" disabled><i class="feather icon-user"></i> Waiting SPV</button>
+            <?php if ($role == 'master' || $role == 'supervisor' || $role == 'spv'): ?>
+                <button class="btn btn-sm btn-warning text-white btn-spv-approval" data-toggle="modal" data-target="#modal-spv-approval"
+                    data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
+                    data-tool="<?= $req['tool_name'] ?> (<?= $req['part_number'] ?>)" 
+                    data-user="<?= $req['borrower_name'] ?> - <?= $req['borrower_nrp'] ?>" 
+                    data-loc="<?= $req['site_location'] ?>"
+                    data-reqnum="<?= $req['request_number'] ?>"
+                    data-notes="<?= htmlspecialchars($req['notes'] ?? '', ENT_QUOTES) ?>">
+                    <i class="feather icon-check-circle mr-1"></i> Approve SPV
+                </button>
+            <?php else: ?>
+                <button class="btn btn-sm btn-dark" disabled title="Waiting for SPV Approval"><i class="feather icon-clock mr-1"></i> Waiting SPV</button>
+            <?php endif; ?>
         <?php elseif ($req['status'] == 'Validating'): ?>
             <button class="btn btn-sm btn-warning" disabled><i class="feather icon-loader"></i> Processing</button>
         <?php elseif ($req['status'] == 'Declined'): ?>
@@ -434,6 +446,47 @@
   </div>
 </div>
 
+<div class="modal fade" id="modal-spv-approval">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-white">
+        <h4 class="modal-title text-white"><i class="feather icon-check-square mr-2"></i>Supervisor Approval</h4>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST">
+        <div class="modal-body">
+          <input type="hidden" name="status_action" value="approve_spv">
+          <input type="hidden" name="request_id" id="spv_req_id">
+          <input type="hidden" name="tool_id" id="spv_tool_id">
+          <input type="hidden" name="qty_requested" id="spv_qty">
+
+          <div class="text-center mb-4">
+            <i class="feather icon-user-check f-40 text-warning mb-3 d-block"></i>
+            <p class="mb-1">Persetujuan pengiriman alat ke <strong>Site</strong>:</p>
+            <h6 class="font-weight-bold" id="disp-reqnum-spv"></h6>
+            <h4 id="spv_tool_name" class="font-weight-bold text-primary mt-2">Nama Alat</h4>
+            <p class="mt-2 mb-1">Peminjam: <strong id="spv_user">Nama Karyawan</strong></p>
+            <p class="mb-0">Lokasi Tujuan: <strong id="spv_loc" class="badge badge-warning text-dark p-2">Lokasi Site</strong></p>
+          </div>
+          
+          <div class="form-group">
+            <label class="font-weight-bold">Catatan Supervisor (Opsional)</label>
+            <textarea name="notes" id="spv_notes_input" class="form-control" rows="2" placeholder="Catatan persetujuan supervisor..."></textarea>
+          </div>
+          
+          <button type="button" class="btn btn-outline-danger btn-block mb-3 btn-trigger-decline-spv">
+            <i class="feather icon-slash mr-1"></i> Tolak Permintaan (Decline)
+          </button>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i> Setujui & Rilis ke Site</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modal-declined">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -445,6 +498,8 @@
         <div class="modal-body">
           <input type="hidden" name="status_action" value="cancel"> 
           <input type="hidden" name="request_id" id="dec_req_id">
+          <input type="hidden" name="tool_id" id="dec_tool_id">
+          <input type="hidden" name="qty_requested" id="dec_qty">
           
           <div class="alert alert-danger">
             <p class="mb-0">Berikan alasan mengapa permintaan ini ditolak agar Leader mengetahui penyebabnya.</p>
@@ -504,13 +559,61 @@ document.addEventListener('DOMContentLoaded', function() {
         const btnTriggerDecline = e.target.closest('.btn-trigger-decline');
         if (btnTriggerDecline) {
             const reqId = document.getElementById('rel_req_id').value;
+            const toolId = document.getElementById('rel_tool_id').value;
+            const qty = document.getElementById('rel_qty').value;
             
             if(reqId) {
                 document.getElementById('dec_req_id').value = reqId;
+                if (document.getElementById('dec_tool_id')) document.getElementById('dec_tool_id').value = toolId;
+                if (document.getElementById('dec_qty')) document.getElementById('dec_qty').value = qty;
                 $('#modal-submitted').modal('hide');
                 setTimeout(function() {
                     $('#modal-declined').modal('show');
                 }, 400); 
+            }
+        }
+
+        const btnSpv = e.target.closest('.btn-spv-approval');
+        if (btnSpv) {
+            const reqId = btnSpv.getAttribute('data-id');
+            const toolId = btnSpv.getAttribute('data-toolid');
+            const qty = btnSpv.getAttribute('data-qty');
+            const toolName = btnSpv.getAttribute('data-tool');
+            const user = btnSpv.getAttribute('data-user');
+            const loc = btnSpv.getAttribute('data-loc');
+            const reqNum = btnSpv.getAttribute('data-reqnum');
+            const notes = btnSpv.getAttribute('data-notes');
+
+            if (document.getElementById('spv_req_id')) {
+                document.getElementById('spv_req_id').value = reqId;
+                document.getElementById('spv_tool_id').value = toolId;
+                document.getElementById('spv_qty').value = qty;
+                document.getElementById('spv_tool_name').innerText = toolName;
+                document.getElementById('spv_user').innerText = user;
+                document.getElementById('spv_loc').innerText = loc;
+                if (document.getElementById('disp-reqnum-spv')) {
+                    document.getElementById('disp-reqnum-spv').innerText = reqNum;
+                }
+                if (document.getElementById('spv_notes_input')) {
+                    document.getElementById('spv_notes_input').value = notes || '';
+                }
+            }
+        }
+
+        const btnTriggerDeclineSpv = e.target.closest('.btn-trigger-decline-spv');
+        if (btnTriggerDeclineSpv) {
+            const reqId = document.getElementById('spv_req_id').value;
+            const toolId = document.getElementById('spv_tool_id').value;
+            const qty = document.getElementById('spv_qty').value;
+
+            if (reqId) {
+                document.getElementById('dec_req_id').value = reqId;
+                if (document.getElementById('dec_tool_id')) document.getElementById('dec_tool_id').value = toolId;
+                if (document.getElementById('dec_qty')) document.getElementById('dec_qty').value = qty;
+                $('#modal-spv-approval').modal('hide');
+                setTimeout(function() {
+                    $('#modal-declined').modal('show');
+                }, 400);
             }
         }
 

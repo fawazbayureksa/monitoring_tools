@@ -228,8 +228,8 @@ public function generate_request_number() {
         
         $notifs = [];
         
-        if ($role == 'master' || $role == 'admin') { 
-            $this->db->where_in('status', ['Submitted', 'Returned']);
+        if ($role == 'master' || $role == 'admin' || $role == 'supervisor' || $role == 'spv') { 
+            $this->db->where_in('status', ['Submitted', 'Returned', 'Waiting Approval']);
             $this->db->order_by('id', 'DESC');
             $query = $this->db->get('requests')->result_array();
             
@@ -244,6 +244,12 @@ public function generate_request_number() {
                     $notifs[] = [
                         'icon' => 'fas fa-clipboard-check text-info',
                         'text' => $q['request_number'] . ' Need Validation',
+                        'link' => site_url('dashboard')
+                    ];
+                } else if ($q['status'] == 'Waiting Approval' && ($role == 'master' || $role == 'supervisor' || $role == 'spv')) {
+                    $notifs[] = [
+                        'icon' => 'fas fa-user-check text-warning',
+                        'text' => $q['request_number'] . ' Need SPV Approval',
                         'link' => site_url('dashboard')
                     ];
                 }

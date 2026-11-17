@@ -29,13 +29,13 @@
                         <a href="<?= site_url('dashboard') ?>" class="nav-link "><span class="pcoded-micon"><i class="feather icon-home"></i></span><span class="pcoded-mtext">Dashboard</span></a>
                     </li>
 
-                    <?php if($role == 'leader' || $role == 'master' || $role == 'admin'): ?>
+                    <?php if($role == 'leader' || $role == 'master' || $role == 'admin' || $role == 'supervisor' || $role == 'spv'): ?>
                     <li class="nav-item <?= $this->uri->segment(1) == 'Request_tools' ? 'active' : '' ?>">
                         <a href="<?= site_url('request_tools') ?>" class="nav-link "><span class="pcoded-micon"><i class="feather icon-edit"></i></span><span class="pcoded-mtext">Request Tools</span></a>
                     </li>
                     <?php endif; ?>
 
-                    <?php if($role == 'master' || $role == 'admin'): ?>
+                    <?php if($role == 'master' || $role == 'admin' || $role == 'supervisor' || $role == 'spv'): ?>
                     <li class="nav-item <?= $this->uri->segment(1) == 'stock_tools' ? 'active' : '' ?>">
                         <a href="<?= site_url('stock_tools') ?>" class="nav-link "><span class="pcoded-micon"><i class="feather icon-box"></i></span><span class="pcoded-mtext">Stock Tools</span></a>
                     </li>

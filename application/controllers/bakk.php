@@ -10,7 +10,7 @@ class Bakk extends CI_Controller {
             redirect('auth');
         }
 
-        if ($this->session->userdata('role') != 'admin' && $this->session->userdata('role') != 'master') {
+        if ($this->session->userdata('role') != 'admin' && $this->session->userdata('role') != 'master' && $this->session->userdata('role') != 'supervisor' && $this->session->userdata('role') != 'spv') {
             redirect('dashboard'); 
         }
 
