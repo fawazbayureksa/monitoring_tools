@@ -43,6 +43,7 @@ $(function () {
 
     if ($("#example1").length) {
         $("#example1").DataTable({
+            "order": [],
             "responsive": true, 
             "paging": true,
             "lengthChange": true,
