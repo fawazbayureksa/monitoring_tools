@@ -218,6 +218,11 @@
                         </thead>
                         <tbody>
                             <?php if(!empty($recent_requests)): ?>
+                                <?php 
+                                    usort($recent_requests, function($a, $b) {
+                                        return strtotime($b['created_at'] ?? '0') - strtotime($a['created_at'] ?? '0');
+                                    });
+                                ?>
                                 <?php foreach ($recent_requests as $req): ?>
                                 <?php 
                                     $is_overdue = false;
@@ -233,7 +238,10 @@
                                 <tr<?= $is_overdue ? ' class="table-danger"' : '' ?>>
                                     <td><?= $req['request_number'] ?></td>
                                     <td>
-                                        <?= date('d F Y', strtotime($req['borrow_date'])) ?>
+                                        <?php if (!empty($req['created_at'])): ?>
+                                            <small class="text-muted d-block mb-1"><i class="feather icon-clock mr-1"></i><?= date('d M Y H:i', strtotime($req['created_at'])) ?></small>
+                                        <?php endif; ?>
+                                        <strong><?= date('d F Y', strtotime($req['borrow_date'])) ?></strong>
                                         <?php if (!empty($req['return_date_est'])): ?>
                                             <br><small class="<?= $is_overdue ? 'text-danger font-weight-bold' : 'text-muted' ?>">
                                                 <i class="feather icon-calendar mr-1"></i>Est: <?= date('d M Y', strtotime($req['return_date_est'])) ?>
@@ -281,14 +289,26 @@
         
         <?php if ($req['status'] == 'Submitted'): ?>
             <?php if ($role == 'master' || $role == 'admin'): ?>
-                <button class="btn btn-sm btn-primary btn-action" data-toggle="modal" data-target="#modal-submitted" 
-                    data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
-                    data-tool="<?= $req['tool_name'] ?> (<?= $req['part_number'] ?>)" 
-                    data-user="<?= $req['borrower_name'] ?> - <?= $req['borrower_nrp'] ?>" 
-                    data-loc="<?= $req['site_location'] ?>"
-                    data-reqnum="<?= $req['request_number'] ?>">
-                    <i class="feather icon-navigation"></i> Release
-                </button>
+                <?php $is_site = (stripos($req['site_location'], 'SITE') !== false); ?>
+                <?php if ($is_site): ?>
+                    <button class="btn btn-sm btn-warning text-dark font-weight-bold btn-action" data-toggle="modal" data-target="#modal-submitted" 
+                        data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
+                        data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
+                        data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
+                        data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
+                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                        <i class="feather icon-upload mr-1"></i> Submit
+                    </button>
+                <?php else: ?>
+                    <button class="btn btn-sm btn-primary btn-action" data-toggle="modal" data-target="#modal-submitted" 
+                        data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
+                        data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
+                        data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
+                        data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
+                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                        <i class="feather icon-navigation mr-1"></i> Release
+                    </button>
+                <?php endif; ?>
             <?php else: ?>
                 <button class="btn btn-sm btn-warning" disabled><i class="feather icon-loader"></i> Waiting Approval</button>
             <?php endif; ?>
@@ -354,12 +374,22 @@
             <?php if ($role == 'master' || $role == 'supervisor' || $role == 'spv'): ?>
                 <button class="btn btn-sm btn-warning text-white btn-spv-approval" data-toggle="modal" data-target="#modal-spv-approval"
                     data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
-                    data-tool="<?= $req['tool_name'] ?> (<?= $req['part_number'] ?>)" 
-                    data-user="<?= $req['borrower_name'] ?> - <?= $req['borrower_nrp'] ?>" 
-                    data-loc="<?= $req['site_location'] ?>"
-                    data-reqnum="<?= $req['request_number'] ?>"
-                    data-notes="<?= htmlspecialchars($req['notes'] ?? '', ENT_QUOTES) ?>">
+                    data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
+                    data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
+                    data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
+                    data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
+                    data-notes="<?= htmlspecialchars($req['notes'] ?? '', ENT_QUOTES) ?>"
+                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>">
                     <i class="feather icon-check-circle mr-1"></i> Approve SPV
+                </button>
+            <?php elseif (($role == 'master' || $role == 'admin') && empty($req['shipping_receipt'])): ?>
+                <button class="btn btn-sm btn-warning text-dark font-weight-bold btn-action" data-toggle="modal" data-target="#modal-submitted" 
+                    data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
+                    data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
+                    data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
+                    data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
+                    data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                    <i class="feather icon-upload mr-1"></i> Submit Resi
                 </button>
             <?php else: ?>
                 <button class="btn btn-sm btn-dark" disabled title="Waiting for SPV Approval"><i class="feather icon-clock mr-1"></i> Waiting SPV</button>
@@ -441,7 +471,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-secondary text-white">
-        <h4 class="modal-title"><i class="feather icon-inbox mr-2"></i>Validation</h4>
+        <h4 class="modal-title" id="modal-submit-title"><i class="feather icon-inbox mr-2"></i>Validation</h4>
         <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
       <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
@@ -467,7 +497,7 @@
           </div>
 
           <div class="form-group text-left" id="group-rel-shipping-receipt">
-            <label class="font-weight-bold"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Opsional / Gambar & PDF)</label>
+            <label class="font-weight-bold" id="label-rel-shipping-receipt"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Gambar & PDF)</label>
             <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
             <small class="text-muted">Maksimal 5MB. Format: JPG, PNG, atau PDF.</small>
           </div>
@@ -478,8 +508,8 @@
           
           <div class="row" id="action-buttons">
               <div class="col-12">
-                  <button type="submit" name="status_action" value="send_supervisor" class="btn btn-warning btn-block" id="btn-spv">
-                    <i class="feather icon-arrow-right mr-1"></i> Send to Supervisor
+                  <button type="submit" name="status_action" value="send_supervisor" class="btn btn-warning btn-block font-weight-bold" id="btn-spv">
+                    <i class="feather icon-send mr-1"></i> Submit ke Supervisor
                   </button>
                   <button type="submit" name="status_action" value="release" class="btn btn-primary btn-block" id="btn-release">
                     <i class="feather icon-navigation mr-1"></i> Release
@@ -499,31 +529,41 @@
         <h4 class="modal-title text-white"><i class="feather icon-check-square mr-2"></i>Supervisor Approval</h4>
         <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
       </div>
-      <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST">
         <div class="modal-body">
           <input type="hidden" name="status_action" value="approve_spv">
           <input type="hidden" name="request_id" id="spv_req_id">
           <input type="hidden" name="tool_id" id="spv_tool_id">
           <input type="hidden" name="qty_requested" id="spv_qty">
 
-          <div class="text-center mb-4">
-            <i class="feather icon-user-check f-40 text-warning mb-3 d-block"></i>
-            <p class="mb-1">Persetujuan pengiriman alat ke <strong>Site</strong>:</p>
+          <div class="text-center mb-3">
+            <i class="feather icon-user-check f-40 text-warning mb-2 d-block"></i>
+            <p class="mb-1 text-muted">Persetujuan pengiriman alat ke <strong>Site</strong>:</p>
             <h6 class="font-weight-bold" id="disp-reqnum-spv"></h6>
-            <h4 id="spv_tool_name" class="font-weight-bold text-primary mt-2">Nama Alat</h4>
-            <p class="mt-2 mb-1">Peminjam: <strong id="spv_user">Nama Karyawan</strong></p>
+            <h4 id="spv_tool_name" class="font-weight-bold text-primary mt-1 mb-2">Nama Alat</h4>
+            <p class="mt-1 mb-1">Peminjam: <strong id="spv_user">Nama Karyawan</strong></p>
             <p class="mb-0">Lokasi Tujuan: <strong id="spv_loc" class="badge badge-warning text-dark p-2">Lokasi Site</strong></p>
           </div>
+
+          <!-- Informasi Resi Pengiriman yang Diunggah oleh Admin -->
+          <div class="card border mb-3 bg-light">
+            <div class="card-body p-3">
+              <label class="font-weight-bold mb-2 text-dark"><i class="feather icon-file-text mr-1 text-primary"></i>Resi Pengiriman dari Admin / Toolkeeper:</label>
+              <div id="spv_resi_available" style="display:none;">
+                <p class="small text-muted mb-2">Admin telah melampirkan resi pengiriman untuk request ini.</p>
+                <a href="#" id="spv_resi_link" target="_blank" class="btn btn-sm btn-info shadow-sm">
+                  <i class="feather icon-external-link mr-1"></i>Buka / Lihat Resi Pengiriman
+                </a>
+              </div>
+              <div id="spv_resi_empty" style="display:none;">
+                <span class="badge badge-secondary p-2"><i class="feather icon-alert-circle mr-1"></i>Tidak ada lampiran resi dari Toolkeeper / Admin</span>
+              </div>
+            </div>
+          </div>
           
-          <div class="form-group">
+          <div class="form-group text-left">
             <label class="font-weight-bold">Catatan Supervisor (Opsional)</label>
             <textarea name="notes" id="spv_notes_input" class="form-control" rows="2" placeholder="Catatan persetujuan supervisor..."></textarea>
-          </div>
-
-          <div class="form-group text-left">
-            <label class="font-weight-bold"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Foto / PDF)</label>
-            <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-            <small class="text-muted">Format: JPG, PNG, atau PDF (Maks. 5MB).</small>
           </div>
           
           <button type="button" class="btn btn-outline-danger btn-block mb-3 btn-trigger-decline-spv">
@@ -650,9 +690,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (loc && loc.toUpperCase().includes('SITE')) {
+                    if (document.getElementById('modal-submit-title')) {
+                        document.getElementById('modal-submit-title').innerHTML = '<i class="feather icon-upload mr-2"></i>Submit Pengiriman ke Site';
+                    }
+                    if (document.getElementById('label-rel-shipping-receipt')) {
+                        document.getElementById('label-rel-shipping-receipt').innerHTML = '<i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Foto / PDF)';
+                    }
                     document.getElementById('btn-spv').style.display = 'block';
                     document.getElementById('btn-release').style.display = 'none';
                 } else {
+                    if (document.getElementById('modal-submit-title')) {
+                        document.getElementById('modal-submit-title').innerHTML = '<i class="feather icon-inbox mr-2"></i>Validation & Release';
+                    }
+                    if (document.getElementById('label-rel-shipping-receipt')) {
+                        document.getElementById('label-rel-shipping-receipt').innerHTML = '<i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Opsional / Gambar & PDF)';
+                    }
                     document.getElementById('btn-spv').style.display = 'none';
                     document.getElementById('btn-release').style.display = 'block';
                 }
@@ -686,6 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const loc = btnSpv.getAttribute('data-loc');
             const reqNum = btnSpv.getAttribute('data-reqnum');
             const notes = btnSpv.getAttribute('data-notes');
+            const resiUrl = btnSpv.getAttribute('data-resi');
 
             if (document.getElementById('spv_req_id')) {
                 document.getElementById('spv_req_id').value = reqId;
@@ -699,6 +752,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 if (document.getElementById('spv_notes_input')) {
                     document.getElementById('spv_notes_input').value = notes || '';
+                }
+
+                const resiAvailable = document.getElementById('spv_resi_available');
+                const resiEmpty = document.getElementById('spv_resi_empty');
+                const resiLink = document.getElementById('spv_resi_link');
+                if (resiUrl && resiUrl.trim() !== '') {
+                    if (resiLink) resiLink.href = resiUrl;
+                    if (resiAvailable) resiAvailable.style.display = 'block';
+                    if (resiEmpty) resiEmpty.style.display = 'none';
+                } else {
+                    if (resiAvailable) resiAvailable.style.display = 'none';
+                    if (resiEmpty) resiEmpty.style.display = 'block';
                 }
             }
         }

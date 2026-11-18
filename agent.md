@@ -101,7 +101,7 @@ Every request follows a deterministic finite state machine:
    - Locked for Toolkeeper & Leader; interactive button `Approve SPV` shown only to `supervisor` and `master`.
 3. **`Waiting Received`**:
    - Tool is in delivery. `requests.shipped_at` is stamped.
-   - Resi pengiriman can be uploaded by Toolkeeper (on `release`) or SPV (on `approve_spv`) to `assets/uploads/shipping_receipt/`.
+   - Resi pengiriman diunggah oleh Toolkeeper/Admin (pada `release` untuk pengiriman langsung, atau pada `send_supervisor` saat diajukan ke SPV). SPV meninjau resi tersebut dan memberikan persetujuan tanpa perlu upload ulang.
    - Automatically counted in dashboard widget **"Delivery to Site"** (`TIMESTAMPDIFF` against SLA, default 2 days).
    - Recipient Leader at site clicks `Receive Tool` which opens `#modal-receive-tool`, requiring upload of physical receipt proof (`received_proof`) to `assets/uploads/received_proof/` and optional receipt notes before transitioning to `Borrowed`.
 4. **`Borrowed`**:

@@ -40,12 +40,14 @@ public function submit() {
         $qty = $this->input->post('qty');
         $mechanic_input = $this->input->post('mechanic_data'); 
         $mech_parts = explode('|', $mechanic_input);
+        $borrower_nrp = isset($mech_parts[0]) ? trim($mech_parts[0]) : '';
+        $borrower_name = isset($mech_parts[1]) ? strtoupper(trim($mech_parts[1])) : $borrower_nrp;
         $data = array(
             'request_number' => $this->input->post('request_number'),
-            'user_id'        => $this->session->userdata('user_id'), // ID akun Leader yang login
+            'user_id'        => $this->session->userdata('user_id'), // ID akun yang login
             'tool_id'        => $tool_id,
-            'borrower_name'  => strtoupper($mech_parts[0]), 
-            'borrower_nrp'   => isset($mech_parts[1]) ? $mech_parts[1] : '',
+            'borrower_name'  => $borrower_name, 
+            'borrower_nrp'   => $borrower_nrp,
             'qty_requested'  => $qty,
             'site_location'  => $this->input->post('site_location'),
             'borrow_date'    => $this->input->post('borrow_date'), 

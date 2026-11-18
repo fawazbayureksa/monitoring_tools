@@ -77,6 +77,7 @@ public function generate_request_number() {
         $status_selesai = ['Completed', 'Declined', 'BAKK (RUSAK)', 'BAKK (HILANG)'];
         $this->db->where_not_in('requests.status', $status_selesai);
 
+        $this->db->order_by('requests.created_at', 'DESC');
         $this->db->order_by('requests.id', 'DESC');
         $this->db->limit(10);
         
@@ -109,6 +110,7 @@ public function generate_request_number() {
         } else {
             $this->db->where('requests.user_id', $user_id);
         }
+        $this->db->order_by('requests.created_at', 'DESC');
         $this->db->order_by('requests.id', 'DESC');
         return $this->db->get()->result_array();
     }
