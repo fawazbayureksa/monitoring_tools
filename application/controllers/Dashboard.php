@@ -80,6 +80,10 @@ public function index() {
                 if ($this->upload->do_upload('shipping_receipt')) {
                     $up_data = $this->upload->data();
                     $data_update['shipping_receipt'] = $up_data['file_name'];
+                } else {
+                    $error = $this->upload->display_errors();
+                    echo "<script>alert('Gagal Upload Resi Pengiriman: " . strip_tags($error) . "'); window.history.back();</script>";
+                    return;
                 }
             }
         } 
@@ -129,6 +133,33 @@ public function index() {
         }
         elseif ($action == 'send_supervisor') {
             $data_update['status'] = 'Waiting Approval';
+            if (!empty($notes)) {
+                $data_update['notes'] = $notes;
+            }
+
+            if (!empty($_FILES['shipping_receipt']['name'])) {
+                $upload_path = './assets/uploads/shipping_receipt/';
+                if (!is_dir($upload_path)) {
+                    mkdir($upload_path, 0777, true);
+                }
+                $config_upload = [
+                    'upload_path'   => $upload_path,
+                    'allowed_types' => 'pdf|jpg|jpeg|png',
+                    'max_size'      => 5120,
+                    'file_name'     => 'RESI_' . $request_id . '_' . time()
+                ];
+                $this->load->library('upload', $config_upload);
+                $this->upload->initialize($config_upload);
+
+                if ($this->upload->do_upload('shipping_receipt')) {
+                    $up_data = $this->upload->data();
+                    $data_update['shipping_receipt'] = $up_data['file_name'];
+                } else {
+                    $error = $this->upload->display_errors();
+                    echo "<script>alert('Gagal Upload Resi Pengiriman: " . strip_tags($error) . "'); window.history.back();</script>";
+                    return;
+                }
+            }
         }
         elseif ($action == 'approve_spv') {
             // SPV menyetujui pengiriman alat ke Site: berstatus Waiting Received & dicatat waktu kirim
@@ -159,6 +190,10 @@ public function index() {
                 if ($this->upload->do_upload('shipping_receipt')) {
                     $up_data = $this->upload->data();
                     $data_update['shipping_receipt'] = $up_data['file_name'];
+                } else {
+                    $error = $this->upload->display_errors();
+                    echo "<script>alert('Gagal Upload Resi Pengiriman: " . strip_tags($error) . "'); window.history.back();</script>";
+                    return;
                 }
             }
         }
