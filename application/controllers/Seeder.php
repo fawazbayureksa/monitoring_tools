@@ -76,4 +76,60 @@ class Seeder extends CI_Controller {
         $done_msg = "Migration 005 selesai dijalankan.";
         echo $is_cli ? $done_msg . PHP_EOL : "<p><strong>$done_msg</strong></p>";
     }
+
+    public function migration_006() {
+        $is_cli = is_cli();
+
+        // 1. Buat tabel request_items jika belum ada
+        if (!$this->db->table_exists('request_items')) {
+            $sql = "CREATE TABLE IF NOT EXISTS `request_items` (
+                `id` INT(11) NOT NULL AUTO_INCREMENT,
+                `request_id` INT(11) NOT NULL,
+                `tool_id` INT(11) NOT NULL,
+                `qty_requested` INT(11) NOT NULL DEFAULT 1,
+                `qty_returned` INT(11) NOT NULL DEFAULT 0,
+                `return_condition` ENUM('good', 'broken', 'lost') DEFAULT NULL,
+                `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_request_id` (`request_id`),
+                KEY `idx_tool_id` (`tool_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;";
+            $this->db->query($sql);
+            $msg = "[CREATED] Tabel 'request_items' berhasil dibuat.";
+            echo $is_cli ? $msg . PHP_EOL : "<p style='color:green;'>$msg</p>";
+        } else {
+            $msg = "[EXISTS] Tabel 'request_items' sudah ada.";
+            echo $is_cli ? $msg . PHP_EOL : "<p style='color:blue;'>$msg</p>";
+        }
+
+        // 2. Migrasikan data request lama ke request_items jika belum termigrasi
+        $migrate_sql = "INSERT INTO `request_items` (`request_id`, `tool_id`, `qty_requested`, `qty_returned`, `return_condition`, `created_at`)
+            SELECT 
+                r.id AS request_id,
+                r.tool_id,
+                r.qty_requested,
+                CASE WHEN r.status = 'Completed' THEN r.qty_requested ELSE 0 END AS qty_returned,
+                CASE 
+                    WHEN r.status = 'Completed' THEN 'good'
+                    WHEN r.status LIKE '%RUSAK%' THEN 'broken'
+                    WHEN r.status LIKE '%HILANG%' THEN 'lost'
+                    ELSE NULL 
+                END AS return_condition,
+                r.created_at
+            FROM `requests` r
+            WHERE r.tool_id IS NOT NULL 
+              AND r.tool_id > 0
+              AND NOT EXISTS (
+                  SELECT 1 FROM `request_items` ri WHERE ri.request_id = r.id
+              );";
+        $this->db->query($migrate_sql);
+        $affected = $this->db->affected_rows();
+        $msg = "[MIGRATED] {$affected} data permintaan lama berhasil dimigrasikan ke 'request_items'.";
+        echo $is_cli ? $msg . PHP_EOL : "<p style='color:green;'>$msg</p>";
+
+        $done_msg = "Migration 006 (Multiple Tools per Request) selesai dijalankan.";
+        echo $is_cli ? $done_msg . PHP_EOL : "<p><strong>$done_msg</strong></p>";
+    }
 }
+

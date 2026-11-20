@@ -125,7 +125,21 @@
                                 <?php $late = $d['hours_in_delivery'] > $sla_hours; ?>
                                 <tr>
                                     <td><?= $d['request_number'] ?></td>
-                                    <td><strong><?= $d['tool_name'] ?></strong><br><small class="text-muted">(<?= $d['part_number'] ?>)</small></td>
+                                    <td>
+                                        <?php if (!empty($d['items'])): ?>
+                                            <ul class="list-unstyled mb-0">
+                                                <?php foreach ($d['items'] as $item): ?>
+                                                    <li class="mb-1">
+                                                        <strong><?= htmlspecialchars($item['tool_name']) ?></strong> 
+                                                        <span class="badge badge-light border font-weight-bold text-primary"><?= $item['qty_requested'] ?> pcs</span>
+                                                        <br><small class="text-muted"><?= htmlspecialchars($item['part_number']) ?></small>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <strong><?= $d['tool_name'] ?></strong><br><small class="text-muted">(<?= $d['part_number'] ?>)</small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= $d['site_location'] ?><br><small class="text-muted"><?= $d['user_name'] ?> (<?= $d['nrp'] ?>)</small></td>
                                     <td>
                                         <?= $d['shipped_at'] ? date('d M Y H:i', strtotime($d['shipped_at'])) : '<span class="text-muted">-</span>' ?>
@@ -175,7 +189,21 @@
                                 <?php foreach ($return_reminders as $r): ?>
                                 <tr>
                                     <td><?= $r['request_number'] ?></td>
-                                    <td><strong><?= $r['tool_name'] ?></strong><br><small class="text-muted">(<?= $r['part_number'] ?>)</small></td>
+                                    <td>
+                                        <?php if (!empty($r['items'])): ?>
+                                            <ul class="list-unstyled mb-0">
+                                                <?php foreach ($r['items'] as $item): ?>
+                                                    <li class="mb-1">
+                                                        <strong><?= htmlspecialchars($item['tool_name']) ?></strong> 
+                                                        <span class="badge badge-light border font-weight-bold text-primary"><?= $item['qty_requested'] ?> pcs</span>
+                                                        <br><small class="text-muted"><?= htmlspecialchars($item['part_number']) ?></small>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <strong><?= $r['tool_name'] ?></strong><br><small class="text-muted">(<?= $r['part_number'] ?>)</small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= $r['borrower_name'] ?><br><small class="text-muted"><?= $r['site_location'] ?></small></td>
                                     <td><?= date('d M Y H:i', strtotime($r['return_date_est'])) ?></td>
                                     <td class="text-center">
@@ -249,7 +277,24 @@
                                             </small>
                                         <?php endif; ?>
                                     </td>
-                                    <td><strong><?= $req['tool_name'] ?></strong><br><small class="text-muted">(<?= $req['part_number'] ?>)</small></td>
+                                    <td>
+                                        <?php if (!empty($req['items'])): ?>
+                                            <ul class="list-unstyled mb-0">
+                                                <?php foreach ($req['items'] as $item): ?>
+                                                    <li class="mb-1">
+                                                        <strong><?= htmlspecialchars($item['tool_name']) ?></strong> 
+                                                        <span class="badge badge-light border font-weight-bold text-primary"><?= $item['qty_requested'] ?> pcs</span>
+                                                        <br><small class="text-muted"><?= htmlspecialchars($item['part_number']) ?><?= !empty($item['rack_location']) ? ' &bull; Rack: ' . htmlspecialchars($item['rack_location']) : '' ?></small>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                            <?php if (count($req['items']) > 1): ?>
+                                                <span class="badge badge-info mt-1"><?= count($req['items']) ?> Jenis Alat (Total: <?= $req['total_qty'] ?? array_sum(array_column($req['items'], 'qty_requested')) ?> pcs)</span>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <strong><?= $req['tool_name'] ?></strong><br><small class="text-muted">(<?= $req['part_number'] ?>)</small>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <strong><?= $req['borrower_name'] ?></strong><br><small class="text-muted">(<?= $req['borrower_nrp'] ?>)</small>
                                         <?php if (!empty($req['shipping_receipt'])): ?>
@@ -296,7 +341,8 @@
                         data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
                         data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
                         data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
-                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
+                        data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                         <i class="feather icon-upload mr-1"></i> Submit
                     </button>
                 <?php else: ?>
@@ -305,7 +351,8 @@
                         data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
                         data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
                         data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
-                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                        data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
+                        data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                         <i class="feather icon-navigation mr-1"></i> Release
                     </button>
                 <?php endif; ?>
@@ -333,7 +380,8 @@
                     data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>"
                     data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
                     data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
-                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>">
+                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>"
+                    data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                     <i class="fas fa-hand-holding-box mr-1"></i> Receive Tool
                 </button>
             <?php else: ?>
@@ -350,7 +398,8 @@
                     data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
                     data-tool="<?= $req['tool_name'] ?> (<?= $req['part_number'] ?>)" 
                     data-user="<?= $req['borrower_name'] ?> - <?= $req['borrower_nrp'] ?>"
-                    data-reqnum="<?= $req['request_number'] ?>">
+                    data-reqnum="<?= $req['request_number'] ?>"
+                    data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                     <i class="feather icon-check-circle mr-1"></i> Validate
                 </button>
             <?php else: ?>
@@ -379,7 +428,8 @@
                     data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
                     data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
                     data-notes="<?= htmlspecialchars($req['notes'] ?? '', ENT_QUOTES) ?>"
-                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>">
+                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>"
+                    data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                     <i class="feather icon-check-circle mr-1"></i> Approve SPV
                 </button>
             <?php elseif (($role == 'master' || $role == 'admin') && empty($req['shipping_receipt'])): ?>
@@ -388,7 +438,8 @@
                     data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
                     data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
                     data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
-                    data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>">
+                    data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
+                    data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                     <i class="feather icon-upload mr-1"></i> Submit Resi
                 </button>
             <?php else: ?>
@@ -417,7 +468,7 @@
 </div>
 
 <div class="modal fade" id="modal-returned">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-info text-white">
         <h4 class="modal-title"><i class="feather icon-check-circle mr-2"></i>Return Validation</h4>
@@ -432,35 +483,33 @@
           <input type="hidden" name="tool_id" id="ret_tool_id">
           <input type="hidden" name="qty_requested" id="ret_qty">
 
-          <div class="alert alert-info text-center">
-            <p class="mb-1">Anda akan mem-validasi pengembalian alat:</p>
-            <h6 class="font-weight-bold" id="disp-reqnum-return"></h6>
-            <h4 class="font-weight-bold mt-2" id="disp-tool-return"></h4>
-            <h5 id="val_tool_name" class="font-weight-bold">Nama Alat</h5>
-            <p class="mb-0 mt-2">Borrower: <span id="val_user" class="font-weight-bold">Nama Karyawan</span></p>
+          <div class="alert alert-info text-center mb-3">
+            <p class="mb-1">Validasi pengembalian fisik untuk nomor permohonan:</p>
+            <h5 class="font-weight-bold" id="disp-reqnum-return"></h5>
+            <p class="mb-0 mt-1">Borrower: <strong id="val_user">Nama Karyawan</strong></p>
           </div>
 
-          <div class="form-group">
-            <label>Condition of the Tool:</label>
-            <select class="form-control" name="condition" id="toolCondition" onchange="checkCondition(this)" required>
-              <option value="good">Good Condition</option>
-              <option value="broken">Broken (Rusak)</option>
-              <option value="lost">Lost (Hilang)</option>
-            </select>
+          <div class="card border mb-3">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 font-weight-bold text-dark"><i class="feather icon-clipboard mr-1 text-info"></i>Inspeksi Kondisi Fisik per Alat:</h6>
+            </div>
+            <div class="card-body p-2" id="ret_items_container">
+              <!-- Item list dinamis diisi via JS -->
+            </div>
           </div>
 
           <div id="alert-bakk" class="alert alert-danger" style="display:none;">
-            <i class="feather icon-alert-triangle"></i> Perhatian: Status akan diubah menjadi <strong>BAKK</strong>. Stok tidak akan dikembalikan.
+            <i class="feather icon-alert-triangle mr-1"></i><strong>Perhatian:</strong> Terdapat alat yang dinyatakan <strong>RUSAK</strong> atau <strong>HILANG</strong>. Status permohonan akan dialihkan ke <strong>BAKK</strong> dan kuantitas alat tersebut tidak akan dikembalikan ke gudang.
           </div>
 
           <div class="form-group">
-            <label>Additional Notes (Optional)</label>
-            <textarea name="notes" class="form-control" rows="2" placeholder="Example: Tool received in dirty condition..."></textarea>
+            <label class="font-weight-bold">Catatan Toolkeeper Keseluruhan (Opsional)</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Contoh: Seluruh alat sudah diinspeksi bersama Leader..."></textarea>
           </div>
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i>Validate Return</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i>Simpan Validasi Pengembalian</button>
         </div>
       </form>
     </div>
@@ -468,7 +517,7 @@
 </div>
 
 <div class="modal fade" id="modal-submitted">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-secondary text-white">
         <h4 class="modal-title" id="modal-submit-title"><i class="feather icon-inbox mr-2"></i>Validation</h4>
@@ -481,18 +530,36 @@
           <input type="hidden" name="qty_requested" id="rel_qty">
           <input type="hidden" name="location" id="rel_loc_input">
 
-          <div class="text-center mb-4">
-            <i class="feather icon-refresh-cw f-40 text-success mb-3 d-block"></i>
-            <p class="mb-1">Anda akan memproses permintaan alat berikut:</p>
-            <h6 class="font-weight-bold" id="disp-reqnum-submit"></h6>
-            <h4 class="font-weight-bold" id="disp-tool-submit"></h4>
-            <h4 id="rel_tool_name" class="font-weight-bold text-primary mt-2">Nama Alat</h4>
-            <p class="mt-2 mb-1">Oleh: <strong id="rel_user">Nama Karyawan</strong></p>
-            <p class="mb-0">Lokasi: <strong id="rel_loc">Lokasi Proyek</strong></p>
+          <div class="text-center mb-3">
+            <i class="feather icon-refresh-cw f-40 text-success mb-2 d-block"></i>
+            <p class="mb-1 text-muted">Anda akan memproses permintaan alat berikut:</p>
+            <h5 class="font-weight-bold text-dark" id="disp-reqnum-submit"></h5>
+            <p class="mt-1 mb-1">Oleh: <strong id="rel_user">Nama Karyawan</strong></p>
+            <p class="mb-2">Lokasi: <strong id="rel_loc" class="badge badge-light border">Lokasi Proyek</strong></p>
+          </div>
+
+          <div class="card border mb-3">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 font-weight-bold text-dark"><i class="feather icon-tool mr-1 text-primary"></i>Rincian Alat Diminta:</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Nama Alat</th>
+                      <th>Part Number</th>
+                      <th class="text-center" style="width: 100px;">Qty Diminta</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rel_items_table"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
           
           <div class="form-group">
-            <label>Catatan Admin (Opsional)</label>
+            <label class="font-weight-bold">Catatan Admin (Opsional)</label>
             <input type="text" name="notes" class="form-control" placeholder="Misal: Sudah dicek bersama...">
           </div>
 
@@ -523,7 +590,7 @@
 </div>
 
 <div class="modal fade" id="modal-spv-approval">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-warning text-white">
         <h4 class="modal-title text-white"><i class="feather icon-check-square mr-2"></i>Supervisor Approval</h4>
@@ -539,10 +606,29 @@
           <div class="text-center mb-3">
             <i class="feather icon-user-check f-40 text-warning mb-2 d-block"></i>
             <p class="mb-1 text-muted">Persetujuan pengiriman alat ke <strong>Site</strong>:</p>
-            <h6 class="font-weight-bold" id="disp-reqnum-spv"></h6>
-            <h4 id="spv_tool_name" class="font-weight-bold text-primary mt-1 mb-2">Nama Alat</h4>
+            <h5 class="font-weight-bold text-dark" id="disp-reqnum-spv"></h5>
             <p class="mt-1 mb-1">Peminjam: <strong id="spv_user">Nama Karyawan</strong></p>
-            <p class="mb-0">Lokasi Tujuan: <strong id="spv_loc" class="badge badge-warning text-dark p-2">Lokasi Site</strong></p>
+            <p class="mb-2">Lokasi Tujuan: <strong id="spv_loc" class="badge badge-warning text-dark p-2">Lokasi Site</strong></p>
+          </div>
+
+          <div class="card border mb-3">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 font-weight-bold text-dark"><i class="feather icon-tool mr-1 text-primary"></i>Rincian Seluruh Alat yang Diminta:</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Nama Alat</th>
+                      <th>Part Number</th>
+                      <th class="text-center" style="width: 100px;">Qty Diminta</th>
+                    </tr>
+                  </thead>
+                  <tbody id="spv_items_table"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
           <!-- Informasi Resi Pengiriman yang Diunggah oleh Admin -->
@@ -567,12 +653,12 @@
           </div>
           
           <button type="button" class="btn btn-outline-danger btn-block mb-3 btn-trigger-decline-spv">
-            <i class="feather icon-slash mr-1"></i> Tolak Permintaan (Decline)
+            <i class="feather icon-slash mr-1"></i> Tolak Permintaan (Decline Seluruhnya)
           </button>
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i> Setujui & Rilis ke Site</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i> Setujui Seluruh Alat & Rilis ke Site</button>
         </div>
       </form>
     </div>
@@ -594,11 +680,11 @@
           <input type="hidden" name="qty_requested" id="dec_qty">
           
           <div class="alert alert-danger">
-            <p class="mb-0">Berikan alasan mengapa permintaan ini ditolak agar Leader mengetahui penyebabnya.</p>
+            <p class="mb-0">Penolakan berlaku untuk <strong>seluruh alat</strong> pada nomor permohonan ini. Stok seluruh item akan otomatis dikembalikan ke inventaris.</p>
           </div>
           
           <div class="form-group">
-            <label>Alasan Penolakan <span class="text-danger">*</span></label>
+            <label class="font-weight-bold">Alasan Penolakan <span class="text-danger">*</span></label>
             <textarea name="notes" class="form-control" rows="3" placeholder="Contoh: Alat sedang dalam masa perbaikan / Stok fisik tidak sesuai dengan sistem..." required></textarea>
           </div>
         </div>
@@ -612,7 +698,7 @@
 </div>
 
 <div class="modal fade" id="modal-receive-tool">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h4 class="modal-title text-white"><i class="feather icon-check-circle mr-2"></i>Konfirmasi Penerimaan Alat</h4>
@@ -627,14 +713,33 @@
 
           <div class="text-center mb-3">
             <i class="feather icon-package f-40 text-success mb-2 d-block"></i>
-            <h6 class="font-weight-bold text-muted mb-1" id="recv_reqnum"></h6>
-            <h4 id="recv_tool_name" class="font-weight-bold text-dark mb-1">Nama Alat</h4>
+            <h5 class="font-weight-bold text-dark mb-1" id="recv_reqnum"></h5>
             <p class="text-muted mb-1">Peminjam: <strong id="recv_user"></strong></p>
-            <p class="text-muted mb-2">Lokasi: <strong id="recv_loc"></strong></p>
+            <p class="text-muted mb-2">Lokasi: <strong id="recv_loc" class="badge badge-light border"></strong></p>
             <div id="recv_resi_wrapper" style="display:none;" class="mb-2">
               <a href="#" id="recv_resi_link" target="_blank" class="btn btn-sm btn-outline-info">
                 <i class="feather icon-file-text mr-1"></i>Lihat Resi Pengiriman
               </a>
+            </div>
+          </div>
+
+          <div class="card border mb-3">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 font-weight-bold text-dark"><i class="feather icon-check-square mr-1 text-success"></i>Daftar Fisik Alat yang Diterima:</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Nama Alat</th>
+                      <th>Part Number</th>
+                      <th class="text-center" style="width: 100px;">Qty Diterima</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recv_items_table"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -655,7 +760,7 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i>Konfirmasi Terima Alat</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i>Konfirmasi Terima Seluruh Alat</button>
         </div>
       </form>
     </div>
@@ -664,6 +769,61 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    function renderItemsList(items, tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (!items || items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-2">Tidak ada data alat</td></tr>';
+            return;
+        }
+        items.forEach(function(item) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td><strong>' + (item.tool_name || '-') + '</strong></td>' +
+                           '<td><span class="badge badge-secondary">' + (item.part_number || '-') + '</span></td>' +
+                           '<td class="text-center font-weight-bold text-primary">' + (item.qty_requested || 1) + ' pcs</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderReturnInspection(items, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        if (!items || items.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-2">Tidak ada data alat</div>';
+            return;
+        }
+        items.forEach(function(item, idx) {
+            const itemId = item.id || idx;
+            const card = document.createElement('div');
+            card.className = 'card border mb-2 bg-light shadow-sm';
+            card.innerHTML = 
+                '<div class="card-body p-2">' +
+                    '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                        '<strong>' + (item.tool_name || 'Tool') + ' <small class="text-muted">(' + (item.part_number || '-') + ')</small></strong>' +
+                        '<span class="badge badge-primary font-weight-bold">' + (item.qty_requested || 1) + ' pcs</span>' +
+                    '</div>' +
+                    '<div class="row align-items-center mt-2">' +
+                        '<div class="col-md-6">' +
+                            '<label class="small font-weight-bold mb-1 text-dark">Kondisi Alat:</label>' +
+                            '<select name="item_condition[' + itemId + ']" class="form-control form-control-sm item-condition-select" onchange="checkReturnConditions()">' +
+                                '<option value="good" selected>Baik (Good - Kembalikan Stok)</option>' +
+                                '<option value="broken">Rusak (Broken - BAKK)</option>' +
+                                '<option value="lost">Hilang (Lost - BAKK)</option>' +
+                            '</select>' +
+                        '</div>' +
+                        '<div class="col-md-6 mt-1 mt-md-0">' +
+                            '<label class="small font-weight-bold mb-1 text-dark">Catatan Item (Opsional):</label>' +
+                            '<input type="text" name="item_notes[' + itemId + ']" class="form-control form-control-sm" placeholder="Catatan kondisi item...">' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            container.appendChild(card);
+        });
+        checkReturnConditions();
+    }
     
     document.body.addEventListener('click', function(e) {
         const btnRelease = e.target.closest('.btn-action');
@@ -675,19 +835,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const user = btnRelease.getAttribute('data-user');
             const loc = btnRelease.getAttribute('data-loc');
             const reqNum = btnRelease.getAttribute('data-reqnum'); 
+            const items = JSON.parse(btnRelease.getAttribute('data-items') || '[]');
 
             if (document.getElementById('rel_req_id')) {
                 document.getElementById('rel_req_id').value = reqId;
                 document.getElementById('rel_tool_id').value = toolId;
                 document.getElementById('rel_qty').value = qty;
                 document.getElementById('rel_loc_input').value = loc;
-                document.getElementById('rel_tool_name').innerText = toolName;
                 document.getElementById('rel_user').innerText = user;
                 document.getElementById('rel_loc').innerText = loc;
 
                 if (document.getElementById('disp-reqnum-submit')) {
                     document.getElementById('disp-reqnum-submit').innerText = reqNum;
                 }
+
+                renderItemsList(items, 'rel_items_table');
 
                 if (loc && loc.toUpperCase().includes('SITE')) {
                     if (document.getElementById('modal-submit-title')) {
@@ -733,18 +895,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const reqId = btnSpv.getAttribute('data-id');
             const toolId = btnSpv.getAttribute('data-toolid');
             const qty = btnSpv.getAttribute('data-qty');
-            const toolName = btnSpv.getAttribute('data-tool');
             const user = btnSpv.getAttribute('data-user');
             const loc = btnSpv.getAttribute('data-loc');
             const reqNum = btnSpv.getAttribute('data-reqnum');
             const notes = btnSpv.getAttribute('data-notes');
             const resiUrl = btnSpv.getAttribute('data-resi');
+            const items = JSON.parse(btnSpv.getAttribute('data-items') || '[]');
 
             if (document.getElementById('spv_req_id')) {
                 document.getElementById('spv_req_id').value = reqId;
                 document.getElementById('spv_tool_id').value = toolId;
                 document.getElementById('spv_qty').value = qty;
-                document.getElementById('spv_tool_name').innerText = toolName;
                 document.getElementById('spv_user').innerText = user;
                 document.getElementById('spv_loc').innerText = loc;
                 if (document.getElementById('disp-reqnum-spv')) {
@@ -753,6 +914,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (document.getElementById('spv_notes_input')) {
                     document.getElementById('spv_notes_input').value = notes || '';
                 }
+
+                renderItemsList(items, 'spv_items_table');
 
                 const resiAvailable = document.getElementById('spv_resi_available');
                 const resiEmpty = document.getElementById('spv_resi_empty');
@@ -790,20 +953,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const reqId = btnValidate.getAttribute('data-id');
             const toolId = btnValidate.getAttribute('data-toolid');
             const qty = btnValidate.getAttribute('data-qty');
-            const toolName = btnValidate.getAttribute('data-tool');
             const user = btnValidate.getAttribute('data-user');
             const reqNum = btnValidate.getAttribute('data-reqnum');
+            const items = JSON.parse(btnValidate.getAttribute('data-items') || '[]');
 
             if (document.getElementById('ret_req_id')) {
                 document.getElementById('ret_req_id').value = reqId;
                 document.getElementById('ret_tool_id').value = toolId;
                 document.getElementById('ret_qty').value = qty;
-                document.getElementById('val_tool_name').innerText = toolName;
                 document.getElementById('val_user').innerText = user;
                 
                 if (document.getElementById('disp-reqnum-return')) {
                     document.getElementById('disp-reqnum-return').innerText = reqNum;
                 }
+
+                renderReturnInspection(items, 'ret_items_container');
             }
         }
 
@@ -812,20 +976,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const reqId = btnReceive.getAttribute('data-id');
             const toolId = btnReceive.getAttribute('data-toolid');
             const qty = btnReceive.getAttribute('data-qty');
-            const toolName = btnReceive.getAttribute('data-tool');
             const user = btnReceive.getAttribute('data-user');
             const loc = btnReceive.getAttribute('data-loc');
             const reqNum = btnReceive.getAttribute('data-reqnum');
             const resiUrl = btnReceive.getAttribute('data-resi');
+            const items = JSON.parse(btnReceive.getAttribute('data-items') || '[]');
 
             if (document.getElementById('recv_req_id')) {
                 document.getElementById('recv_req_id').value = reqId;
                 document.getElementById('recv_tool_id').value = toolId;
                 document.getElementById('recv_qty').value = qty;
                 document.getElementById('recv_reqnum').innerText = reqNum;
-                document.getElementById('recv_tool_name').innerText = toolName;
                 document.getElementById('recv_user').innerText = user;
                 document.getElementById('recv_loc').innerText = loc;
+
+                renderItemsList(items, 'recv_items_table');
 
                 const resiWrapper = document.getElementById('recv_resi_wrapper');
                 const resiLink = document.getElementById('recv_resi_link');
@@ -840,11 +1005,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function checkCondition(select) {
-    if (select.value === 'broken' || select.value === 'lost') {
-        document.getElementById('alert-bakk').style.display = 'block';
-    } else {
-        document.getElementById('alert-bakk').style.display = 'none';
+function checkReturnConditions() {
+    const selects = document.querySelectorAll('.item-condition-select');
+    let hasProblem = false;
+    selects.forEach(function(sel) {
+        if (sel.value === 'broken' || sel.value === 'lost') {
+            hasProblem = true;
+        }
+    });
+    const alertBakk = document.getElementById('alert-bakk');
+    if (alertBakk) {
+        alertBakk.style.display = hasProblem ? 'block' : 'none';
     }
 }
 

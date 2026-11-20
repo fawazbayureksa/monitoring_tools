@@ -125,13 +125,31 @@
                                 <th>Date Borrowed</th>
                                 <th>Date Returned</th>
                                 <th class="text-center">Status</th>
+                                <th class="text-center no-export">Action</th>
                             </tr>
                         </thead>
                             <tbody>
                             <?php $no=1; foreach ($history as $h): ?>
                             <tr>
                                 <td><strong><?= $h['request_number'] ?></strong></td>
-                                <td><?= $h['tool_name'] ?> <br><small class="text-muted">(<?= $h['part_number'] ?>)</small></td>
+                                <td>
+                                    <?php if (!empty($h['items'])): ?>
+                                        <ul class="list-unstyled mb-0">
+                                            <?php foreach ($h['items'] as $item): ?>
+                                                <li class="mb-1">
+                                                    <strong><?= htmlspecialchars($item['tool_name']) ?></strong> 
+                                                    <span class="badge badge-light border font-weight-bold text-primary"><?= $item['qty_requested'] ?> pcs</span>
+                                                    <br><small class="text-muted"><?= htmlspecialchars($item['part_number']) ?></small>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                        <?php if (count($h['items']) > 1): ?>
+                                            <span class="badge badge-info mt-1"><?= count($h['items']) ?> Jenis Alat (Total: <?= $h['total_qty'] ?? array_sum(array_column($h['items'], 'qty_requested')) ?> pcs)</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <?= $h['tool_name'] ?> <br><small class="text-muted">(<?= $h['part_number'] ?>)</small>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= $h['borrower_nrp'] ?> <br><small class="text-muted">(<?= $h['borrower_name'] ?>)</small></td>
                                 <td><?= date('d M Y, H:i', strtotime($h['borrow_date'])) ?></td>
                                 <td>
@@ -191,7 +209,18 @@
                                         <span class="badge badge-secondary"><?= $current_status ?></span>
                                     <?php endif; ?>
                                 </td>
-                                
+                                <td class="text-center align-middle">
+                                    <?php 
+                                        $is_final = in_array($current_status, ['Completed', 'BAKK', 'BAKK (RUSAK)', 'BAKK (HILANG)']) || (strpos(strtoupper($current_status), 'BAKK') !== false);
+                                    ?>
+                                    <?php if ($is_final): ?>
+                                        <a href="<?= site_url('history/download_pdf/' . $h['id']) ?>" class="btn btn-sm btn-outline-danger shadow-sm font-weight-bold" title="Download Form Peminjaman Tools (.pdf)" target="_blank">
+                                            <i class="feather icon-file-text mr-1"></i> Download Form
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="text-muted small">-</span>
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>

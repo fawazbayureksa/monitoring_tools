@@ -200,40 +200,84 @@ public function index() {
         elseif ($action == 'cancel') {
             $data_update['status'] = 'Declined';
             $data_update['notes'] = $notes;
-            if (empty($tool_id) || empty($qty)) {
-                $req_data = $this->db->get_where('requests', ['id' => $request_id])->row_array();
-                if ($req_data) {
-                    $tool_id = $req_data['tool_id'];
-                    $qty = $req_data['qty_requested'];
-                }
-            }
-            if (!empty($tool_id) && !empty($qty)) {
-                $this->M_Requests->return_tool_stock($tool_id, $qty);
-            }
+            // Kembalikan stok seluruh item dalam request
+            $this->M_Requests->return_request_items_stock($request_id);
         }
         elseif ($action == 'return') {
             $data_update['status'] = 'Returned';
             $data_update['return_date_actual'] = date('Y-m-d H:i:s');
         }
         elseif ($action == 'validate_return') {
-            $condition = $this->input->post('condition');
             $data_update['return_date_actual'] = date('Y-m-d H:i:s');
-
-            if ($condition == 'good') {
-                $data_update['status'] = 'Completed'; 
-                $this->M_Requests->return_tool_stock($tool_id, $qty);
-            } else {
-                $data_update['status'] = 'BAKK'; 
-                $bakk_data = array(
-                    'request_id' => $request_id,
-                    'tool_id'    => $tool_id,
-                    'condition_status' => ($condition == 'broken') ? 'RUSAK' : 'HILANG',
-                    'upload_status' => 'Pending Upload',
-                    'notes'      => $notes
-                );
-                $this->M_Requests->insert_bakk($bakk_data);
-            }
             $data_update['notes'] = $notes;
+
+            $item_conditions = $this->input->post('item_condition'); // Array [item_id => 'good'|'broken'|'lost']
+            $item_notes = $this->input->post('item_notes');
+
+            // Ambil seluruh rincian item untuk request ini
+            $req_items = $this->M_Requests->get_request_items($request_id);
+
+            $has_broken_or_lost = false;
+
+            if (!empty($req_items) && !empty($item_conditions) && is_array($item_conditions)) {
+                foreach ($req_items as $item) {
+                    $item_id = $item['id'];
+                    $cond = isset($item_conditions[$item_id]) ? $item_conditions[$item_id] : 'good';
+                    $note_item = isset($item_notes[$item_id]) ? $item_notes[$item_id] : $notes;
+
+                    if ($cond == 'good') {
+                        // Kategori BAIK: Kembalikan stok ke gudang
+                        $this->M_Requests->return_tool_stock($item['tool_id'], $item['qty_requested']);
+                        if ($item_id > 0) {
+                            $this->M_Requests->update_request_item($item_id, [
+                                'qty_returned'     => $item['qty_requested'],
+                                'return_condition' => 'good'
+                            ]);
+                        }
+                    } else {
+                        // Kategori RUSAK atau HILANG: Jangan kembalikan stok, catat ke BAKK
+                        $has_broken_or_lost = true;
+                        $status_bakk = ($cond == 'broken') ? 'RUSAK' : 'HILANG';
+                        if ($item_id > 0) {
+                            $this->M_Requests->update_request_item($item_id, [
+                                'qty_returned'     => 0,
+                                'return_condition' => $cond
+                            ]);
+                        }
+                        $bakk_data = array(
+                            'request_id'       => $request_id,
+                            'tool_id'          => $item['tool_id'],
+                            'condition_status' => $status_bakk,
+                            'upload_status'    => 'Pending Upload',
+                            'notes'            => !empty($note_item) ? $note_item : $notes
+                        );
+                        $this->M_Requests->insert_bakk($bakk_data);
+                    }
+                }
+
+                if ($has_broken_or_lost) {
+                    $data_update['status'] = 'BAKK';
+                } else {
+                    $data_update['status'] = 'Completed';
+                }
+            } else {
+                // Fallback untuk request lama atau input kondisi global
+                $condition = $this->input->post('condition');
+                if ($condition == 'good') {
+                    $data_update['status'] = 'Completed'; 
+                    $this->M_Requests->return_request_items_stock($request_id);
+                } else {
+                    $data_update['status'] = 'BAKK'; 
+                    $bakk_data = array(
+                        'request_id'       => $request_id,
+                        'tool_id'          => !empty($tool_id) ? $tool_id : ($req_items[0]['tool_id'] ?? 0),
+                        'condition_status' => ($condition == 'broken') ? 'RUSAK' : 'HILANG',
+                        'upload_status'    => 'Pending Upload',
+                        'notes'            => $notes
+                    );
+                    $this->M_Requests->insert_bakk($bakk_data);
+                }
+            }
         }
 
         // Simpan ke database

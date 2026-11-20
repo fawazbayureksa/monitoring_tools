@@ -121,7 +121,7 @@
                                 <td class="text-center">
                                     <span class="badge badge-secondary"><?= $b['upload_status'] ?></span>
                                 </td>
-                                <td class="text-center font-weight-bold">1</td>
+                                <td class="text-center font-weight-bold"><?= $b['qty_requested'] ?? 1 ?></td>
                                 <td class="text-center">  
                                 <button type="button" class="btn btn-sm btn-danger btn-trigger-upload" data-toggle="modal" data-target="#modal-upload" data-id="<?= $b['id'] ?>"> <i class="feather icon-upload-cloud"></i>
                                 </button>
