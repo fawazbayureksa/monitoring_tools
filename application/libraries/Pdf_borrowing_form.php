@@ -216,17 +216,17 @@ class Pdf_borrowing_form extends FPDF {
                 $toolText .= ' (x' . $item['qty_requested'] . ')';
             }
 
-            // Status label mapping
-            $statusLabel = 'Baik';
+            // Status label mapping (Do not default to 'Baik' when inspection data is missing)
+            $statusLabel = '-';
             if (!empty($item['return_condition'])) {
-                if ($item['return_condition'] == 'broken') $statusLabel = 'Rusak';
-                elseif ($item['return_condition'] == 'lost') $statusLabel = 'Hilang';
-                elseif ($item['return_condition'] == 'good') $statusLabel = 'Baik';
+                if ($item['return_condition'] === 'broken') $statusLabel = 'Rusak';
+                elseif ($item['return_condition'] === 'lost') $statusLabel = 'Hilang';
+                elseif ($item['return_condition'] === 'good') $statusLabel = 'Baik';
             } elseif (!empty($this->request['status'])) {
-                if ($this->request['status'] == 'Completed') $statusLabel = 'Baik';
+                if ($this->request['status'] === 'Completed') $statusLabel = 'Baik';
                 elseif (strpos($this->request['status'], 'RUSAK') !== false) $statusLabel = 'Rusak';
                 elseif (strpos($this->request['status'], 'HILANG') !== false) $statusLabel = 'Hilang';
-                elseif ($this->request['status'] == 'BAKK') $statusLabel = 'BAKK';
+                elseif ($this->request['status'] === 'BAKK') $statusLabel = 'BAKK';
             }
 
             // Truncate tool text if it exceeds cell width

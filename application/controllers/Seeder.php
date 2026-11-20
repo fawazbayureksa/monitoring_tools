@@ -89,22 +89,30 @@ class Seeder extends CI_Controller {
                 `qty_requested` INT(11) NOT NULL DEFAULT 1,
                 `qty_returned` INT(11) NOT NULL DEFAULT 0,
                 `return_condition` ENUM('good', 'broken', 'lost') DEFAULT NULL,
+                `stock_restored` TINYINT(1) NOT NULL DEFAULT 0,
                 `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_request_tool` (`request_id`, `tool_id`),
                 KEY `idx_request_id` (`request_id`),
-                KEY `idx_tool_id` (`tool_id`)
+                KEY `idx_tool_id` (`tool_id`),
+                CONSTRAINT `fk_request_items_request` FOREIGN KEY (`request_id`) REFERENCES `requests` (`id`) ON DELETE CASCADE,
+                CONSTRAINT `fk_request_items_tool` FOREIGN KEY (`tool_id`) REFERENCES `tools` (`id`) ON DELETE RESTRICT
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;";
             $this->db->query($sql);
             $msg = "[CREATED] Tabel 'request_items' berhasil dibuat.";
             echo $is_cli ? $msg . PHP_EOL : "<p style='color:green;'>$msg</p>";
         } else {
+            // Pastikan kolom stock_restored ada
+            if (!$this->db->field_exists('stock_restored', 'request_items')) {
+                $this->db->query("ALTER TABLE `request_items` ADD COLUMN `stock_restored` TINYINT(1) NOT NULL DEFAULT 0 AFTER `return_condition`");
+            }
             $msg = "[EXISTS] Tabel 'request_items' sudah ada.";
             echo $is_cli ? $msg . PHP_EOL : "<p style='color:blue;'>$msg</p>";
         }
 
         // 2. Migrasikan data request lama ke request_items jika belum termigrasi
-        $migrate_sql = "INSERT INTO `request_items` (`request_id`, `tool_id`, `qty_requested`, `qty_returned`, `return_condition`, `created_at`)
+        $migrate_sql = "INSERT INTO `request_items` (`request_id`, `tool_id`, `qty_requested`, `qty_returned`, `return_condition`, `stock_restored`, `created_at`)
             SELECT 
                 r.id AS request_id,
                 r.tool_id,
@@ -116,6 +124,10 @@ class Seeder extends CI_Controller {
                     WHEN r.status LIKE '%HILANG%' THEN 'lost'
                     ELSE NULL 
                 END AS return_condition,
+                CASE 
+                    WHEN r.status IN ('Completed', 'Declined', 'Cancelled') THEN 1 
+                    ELSE 0 
+                END AS stock_restored,
                 r.created_at
             FROM `requests` r
             WHERE r.tool_id IS NOT NULL 

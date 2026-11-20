@@ -309,6 +309,7 @@
                                         <?php 
                                             if ($req['status'] == 'Submitted') echo '<span class="badge badge-secondary">Submitted</span>';
                                             elseif ($req['status'] == 'Waiting Approval') echo '<span class="badge badge-dark">Waiting SPV</span>';
+                                            elseif ($req['status'] == 'Approved') echo '<span class="badge badge-primary">Approved</span>';
                                             elseif ($req['status'] == 'Waiting Received') echo '<span class="badge badge-warning">Waiting Received</span>';
                                             elseif ($req['status'] == 'Validating') echo '<span class="badge badge-warning">Validating</span>';
                                             elseif ($req['status'] == 'Borrowed') {
@@ -428,22 +429,25 @@
                     data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
                     data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
                     data-notes="<?= htmlspecialchars($req['notes'] ?? '', ENT_QUOTES) ?>"
-                    data-resi="<?= !empty($req['shipping_receipt']) ? base_url('assets/uploads/shipping_receipt/' . $req['shipping_receipt']) : '' ?>"
                     data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
                     <i class="feather icon-check-circle mr-1"></i> Approve SPV
                 </button>
-            <?php elseif (($role == 'master' || $role == 'admin') && empty($req['shipping_receipt'])): ?>
-                <button class="btn btn-sm btn-warning text-dark font-weight-bold btn-action" data-toggle="modal" data-target="#modal-submitted" 
-                    data-id="<?= $req['id'] ?>" data-toolid="<?= $req['tool_id'] ?>" data-qty="<?= $req['qty_requested'] ?>" 
-                    data-tool="<?= htmlspecialchars($req['tool_name'] . ' (' . $req['part_number'] . ')', ENT_QUOTES) ?>" 
+            <?php else: ?>
+                <button class="btn btn-sm btn-dark" disabled title="Waiting for SPV Approval"><i class="feather icon-clock mr-1"></i> Waiting SPV</button>
+            <?php endif; ?>
+
+        <?php elseif ($req['status'] == 'Approved'): ?>
+            <?php if ($role == 'master' || $role == 'admin'): ?>
+                <button class="btn btn-sm btn-primary font-weight-bold btn-ship" data-toggle="modal" data-target="#modal-shipping" 
+                    data-id="<?= $req['id'] ?>" 
                     data-user="<?= htmlspecialchars($req['borrower_name'] . ' - ' . $req['borrower_nrp'], ENT_QUOTES) ?>" 
                     data-loc="<?= htmlspecialchars($req['site_location'], ENT_QUOTES) ?>"
                     data-reqnum="<?= htmlspecialchars($req['request_number'], ENT_QUOTES) ?>"
                     data-items='<?= json_encode($req['items'] ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) ?>'>
-                    <i class="feather icon-upload mr-1"></i> Submit Resi
+                    <i class="feather icon-truck mr-1"></i> Kirim Alat
                 </button>
             <?php else: ?>
-                <button class="btn btn-sm btn-dark" disabled title="Waiting for SPV Approval"><i class="feather icon-clock mr-1"></i> Waiting SPV</button>
+                <button class="btn btn-sm btn-info" disabled title="Approved by SPV - Waiting for Admin Shipping"><i class="feather icon-clock mr-1"></i> Ready to Ship</button>
             <?php endif; ?>
         <?php elseif ($req['status'] == 'Validating'): ?>
             <button class="btn btn-sm btn-warning" disabled><i class="feather icon-loader"></i> Processing</button>
@@ -562,12 +566,6 @@
             <label class="font-weight-bold">Catatan Admin (Opsional)</label>
             <input type="text" name="notes" class="form-control" placeholder="Misal: Sudah dicek bersama...">
           </div>
-
-          <div class="form-group text-left" id="group-rel-shipping-receipt">
-            <label class="font-weight-bold" id="label-rel-shipping-receipt"><i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Gambar & PDF)</label>
-            <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-            <small class="text-muted">Maksimal 5MB. Format: JPG, PNG, atau PDF.</small>
-          </div>
           
           <button type="button" class="btn btn-danger btn-block mb-3 btn-trigger-decline">
             <i class="feather icon-slash mr-1"></i> Decline Request
@@ -631,22 +629,6 @@
             </div>
           </div>
 
-          <!-- Informasi Resi Pengiriman yang Diunggah oleh Admin -->
-          <div class="card border mb-3 bg-light">
-            <div class="card-body p-3">
-              <label class="font-weight-bold mb-2 text-dark"><i class="feather icon-file-text mr-1 text-primary"></i>Resi Pengiriman dari Admin / Toolkeeper:</label>
-              <div id="spv_resi_available" style="display:none;">
-                <p class="small text-muted mb-2">Admin telah melampirkan resi pengiriman untuk request ini.</p>
-                <a href="#" id="spv_resi_link" target="_blank" class="btn btn-sm btn-info shadow-sm">
-                  <i class="feather icon-external-link mr-1"></i>Buka / Lihat Resi Pengiriman
-                </a>
-              </div>
-              <div id="spv_resi_empty" style="display:none;">
-                <span class="badge badge-secondary p-2"><i class="feather icon-alert-circle mr-1"></i>Tidak ada lampiran resi dari Toolkeeper / Admin</span>
-              </div>
-            </div>
-          </div>
-          
           <div class="form-group text-left">
             <label class="font-weight-bold">Catatan Supervisor (Opsional)</label>
             <textarea name="notes" id="spv_notes_input" class="form-control" rows="2" placeholder="Catatan persetujuan supervisor..."></textarea>
@@ -658,7 +640,65 @@
         </div>
         <div class="modal-footer justify-content-between">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
-          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i> Setujui Seluruh Alat & Rilis ke Site</button>
+          <button type="submit" class="btn btn-success"><i class="feather icon-check mr-1"></i> Setujui Seluruh Permintaan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modal-shipping">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h4 class="modal-title text-white"><i class="feather icon-truck mr-2"></i>Konfirmasi Pengiriman Alat ke Site</h4>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <form action="<?= site_url('dashboard/process_action') ?>" method="POST" enctype="multipart/form-data">
+        <div class="modal-body">
+          <input type="hidden" name="status_action" value="ship">
+          <input type="hidden" name="request_id" id="ship_req_id">
+
+          <div class="alert alert-primary text-center mb-3">
+            <p class="mb-1">Permintaan telah <strong>disetujui oleh Supervisor</strong>. Silakan upload resi pengiriman untuk memproses pengiriman:</p>
+            <h5 class="font-weight-bold" id="disp-reqnum-ship"></h5>
+            <p class="mb-0 mt-1">Peminjam: <strong id="ship_user"></strong> | Tujuan: <strong id="ship_loc" class="badge badge-warning text-dark"></strong></p>
+          </div>
+
+          <div class="card border mb-3">
+            <div class="card-header bg-light py-2">
+              <h6 class="mb-0 font-weight-bold text-dark"><i class="feather icon-tool mr-1 text-primary"></i>Rincian Alat yang Dikirim:</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="thead-light">
+                    <tr>
+                      <th>Nama Alat</th>
+                      <th>Part Number</th>
+                      <th class="text-center" style="width: 100px;">Qty Dikirim</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ship_items_table"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group text-left">
+            <label class="font-weight-bold text-dark"><i class="feather icon-file-text mr-1 text-primary"></i>Upload Resi Pengiriman <span class="text-danger">*</span></label>
+            <input type="file" name="shipping_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf" required>
+            <small class="text-muted">Wajib diunggah. Format yang didukung: JPG, JPEG, PNG, PDF (Maks. 5MB).</small>
+          </div>
+
+          <div class="form-group text-left">
+            <label class="font-weight-bold">Catatan Pengiriman (Opsional)</label>
+            <input type="text" name="notes" class="form-control" placeholder="Contoh: Dikirim via kurir internal / ekspedisi...">
+          </div>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary font-weight-bold"><i class="feather icon-send mr-1"></i> Konfirmasi & Kirim ke Site</button>
         </div>
       </form>
     </div>
@@ -807,9 +847,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     '</div>' +
                     '<div class="row align-items-center mt-2">' +
                         '<div class="col-md-6">' +
-                            '<label class="small font-weight-bold mb-1 text-dark">Kondisi Alat:</label>' +
-                            '<select name="item_condition[' + itemId + ']" class="form-control form-control-sm item-condition-select" onchange="checkReturnConditions()">' +
-                                '<option value="good" selected>Baik (Good - Kembalikan Stok)</option>' +
+                            '<label class="small font-weight-bold mb-1 text-dark">Kondisi Alat <span class="text-danger">*</span>:</label>' +
+                            '<select name="item_condition[' + itemId + ']" class="form-control form-control-sm item-condition-select" required onchange="checkReturnConditions()">' +
+                                '<option value="" disabled selected>-- Pilih Kondisi --</option>' +
+                                '<option value="good">Baik (Good - Kembalikan Stok)</option>' +
                                 '<option value="broken">Rusak (Broken - BAKK)</option>' +
                                 '<option value="lost">Hilang (Lost - BAKK)</option>' +
                             '</select>' +
@@ -853,19 +894,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (loc && loc.toUpperCase().includes('SITE')) {
                     if (document.getElementById('modal-submit-title')) {
-                        document.getElementById('modal-submit-title').innerHTML = '<i class="feather icon-upload mr-2"></i>Submit Pengiriman ke Site';
-                    }
-                    if (document.getElementById('label-rel-shipping-receipt')) {
-                        document.getElementById('label-rel-shipping-receipt').innerHTML = '<i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Foto / PDF)';
+                        document.getElementById('modal-submit-title').innerHTML = '<i class="feather icon-upload mr-2"></i>Submit Pengajuan ke Supervisor';
                     }
                     document.getElementById('btn-spv').style.display = 'block';
                     document.getElementById('btn-release').style.display = 'none';
                 } else {
                     if (document.getElementById('modal-submit-title')) {
                         document.getElementById('modal-submit-title').innerHTML = '<i class="feather icon-inbox mr-2"></i>Validation & Release';
-                    }
-                    if (document.getElementById('label-rel-shipping-receipt')) {
-                        document.getElementById('label-rel-shipping-receipt').innerHTML = '<i class="feather icon-upload mr-1"></i>Upload Resi Pengiriman (Opsional / Gambar & PDF)';
                     }
                     document.getElementById('btn-spv').style.display = 'none';
                     document.getElementById('btn-release').style.display = 'block';
@@ -899,7 +934,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const loc = btnSpv.getAttribute('data-loc');
             const reqNum = btnSpv.getAttribute('data-reqnum');
             const notes = btnSpv.getAttribute('data-notes');
-            const resiUrl = btnSpv.getAttribute('data-resi');
             const items = JSON.parse(btnSpv.getAttribute('data-items') || '[]');
 
             if (document.getElementById('spv_req_id')) {
@@ -916,18 +950,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 renderItemsList(items, 'spv_items_table');
+            }
+        }
 
-                const resiAvailable = document.getElementById('spv_resi_available');
-                const resiEmpty = document.getElementById('spv_resi_empty');
-                const resiLink = document.getElementById('spv_resi_link');
-                if (resiUrl && resiUrl.trim() !== '') {
-                    if (resiLink) resiLink.href = resiUrl;
-                    if (resiAvailable) resiAvailable.style.display = 'block';
-                    if (resiEmpty) resiEmpty.style.display = 'none';
-                } else {
-                    if (resiAvailable) resiAvailable.style.display = 'none';
-                    if (resiEmpty) resiEmpty.style.display = 'block';
+        const btnShip = e.target.closest('.btn-ship');
+        if (btnShip) {
+            const reqId = btnShip.getAttribute('data-id');
+            const user = btnShip.getAttribute('data-user');
+            const loc = btnShip.getAttribute('data-loc');
+            const reqNum = btnShip.getAttribute('data-reqnum');
+            const items = JSON.parse(btnShip.getAttribute('data-items') || '[]');
+
+            if (document.getElementById('ship_req_id')) {
+                document.getElementById('ship_req_id').value = reqId;
+                document.getElementById('ship_user').innerText = user;
+                document.getElementById('ship_loc').innerText = loc;
+                if (document.getElementById('disp-reqnum-ship')) {
+                    document.getElementById('disp-reqnum-ship').innerText = reqNum;
                 }
+
+                renderItemsList(items, 'ship_items_table');
             }
         }
 

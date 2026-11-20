@@ -70,17 +70,29 @@ public function generate_request_number() {
             return false;
         }
 
+        // 1. Model-level validation: cegah duplikasi tool_id dalam satu request dan validasi kuantitas
+        $seen_tools = [];
+        foreach ($items as $item) {
+            $t_id = (int)($item['tool_id'] ?? 0);
+            $qty = (int)($item['qty'] ?? 0);
+
+            if ($t_id <= 0 || $qty <= 0) {
+                return false;
+            }
+
+            if (in_array($t_id, $seen_tools)) {
+                // Duplikasi tool_id dalam satu permohonan dilarang
+                return false;
+            }
+            $seen_tools[] = $t_id;
+        }
+
         $this->db->trans_start();
 
-        // 1. Cek ketersediaan dan kurangi stok untuk setiap alat dengan atomic update
+        // 2. Cek ketersediaan dan kurangi stok untuk setiap alat dengan atomic update
         foreach ($items as $item) {
             $t_id = (int)$item['tool_id'];
             $qty = (int)$item['qty'];
-
-            if ($t_id <= 0 || $qty <= 0) {
-                $this->db->trans_rollback();
-                return false;
-            }
 
             // Kurangi stok hanya jika stok saat ini mencukupi (prevent negative stock & race conditions)
             $this->db->set('quantity', 'quantity - ' . $qty, FALSE);
@@ -95,7 +107,7 @@ public function generate_request_number() {
             }
         }
 
-        // 2. Simpan Header ke tabel requests
+        // 3. Simpan Header ke tabel requests
         // Isi fallback legacy tool_id & qty_requested dengan item pertama
         if (!isset($data['tool_id']) && !empty($items[0]['tool_id'])) {
             $data['tool_id'] = (int)$items[0]['tool_id'];
@@ -112,15 +124,16 @@ public function generate_request_number() {
             return false;
         }
 
-        // 3. Simpan Detail ke tabel request_items
+        // 4. Simpan Detail ke tabel request_items
         $batch_items = [];
         foreach ($items as $item) {
             $batch_items[] = [
-                'request_id'    => $request_id,
-                'tool_id'       => (int)$item['tool_id'],
-                'qty_requested' => (int)$item['qty'],
-                'qty_returned'  => 0,
-                'created_at'    => date('Y-m-d H:i:s')
+                'request_id'     => $request_id,
+                'tool_id'        => (int)$item['tool_id'],
+                'qty_requested'  => (int)$item['qty'],
+                'qty_returned'   => 0,
+                'stock_restored' => 0,
+                'created_at'     => date('Y-m-d H:i:s')
             ];
         }
         $this->db->insert_batch('request_items', $batch_items);
@@ -206,19 +219,269 @@ public function generate_request_number() {
         return $requests;
     }
 
+    /**
+     * Mengembalikan stok seluruh item dalam request secara idempoten.
+     * Menggunakan DB transaction dan row locking (SELECT ... FOR UPDATE)
+     * untuk mencegah double restoration akibat multiple submit.
+     */
     public function return_request_items_stock($request_id) {
-        $items = $this->get_request_items($request_id);
-        if (!empty($items)) {
-            $this->db->trans_start();
-            foreach ($items as $item) {
-                if (!empty($item['tool_id']) && !empty($item['qty_requested'])) {
-                    $this->return_tool_stock($item['tool_id'], $item['qty_requested']);
+        $request_id = (int)$request_id;
+        if ($request_id <= 0) {
+            return false;
+        }
+
+        $this->db->trans_begin();
+
+        // 1. Kunci baris request
+        $request = $this->db->query("SELECT * FROM requests WHERE id = ? FOR UPDATE", [$request_id])->row_array();
+        if (!$request) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        // 2. Kunci dan ambil item yang stoknya BELUM dikembalikan (stock_restored = 0)
+        $items = $this->db->query("SELECT * FROM request_items WHERE request_id = ? AND stock_restored = 0 FOR UPDATE", [$request_id])->result_array();
+
+        if (empty($items)) {
+            // Cek jika request lama (legacy) yang belum memiliki baris di request_items
+            $has_items = $this->db->get_where('request_items', ['request_id' => $request_id])->num_rows();
+            if ($has_items == 0 && !empty($request['tool_id']) && !empty($request['qty_requested'])) {
+                // Pastikan status request belum pernah final agar tidak dobel
+                if (!in_array($request['status'], ['Declined', 'Cancelled', 'Completed', 'BAKK', 'BAKK (RUSAK)', 'BAKK (HILANG)'])) {
+                    $this->return_tool_stock($request['tool_id'], $request['qty_requested']);
                 }
             }
-            $this->db->trans_complete();
-            return $this->db->trans_status();
+            $this->db->trans_commit();
+            return true;
         }
-        return false;
+
+        // 3. Kembalikan stok dan tandai stock_restored = 1
+        foreach ($items as $item) {
+            $tool_id = (int)$item['tool_id'];
+            $qty = (int)$item['qty_requested'];
+            if ($tool_id > 0 && $qty > 0) {
+                $this->db->set('quantity', 'quantity + ' . $qty, FALSE);
+                $this->db->where('id', $tool_id);
+                $this->db->update('tools');
+
+                $this->db->where('id', $item['id']);
+                $this->db->update('request_items', [
+                    'stock_restored' => 1,
+                    'qty_returned'   => 0
+                ]);
+            }
+        }
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        $this->db->trans_commit();
+        return true;
+    }
+
+    /**
+     * Membatalkan/menolak request secara idempoten dan mengembalikan stok seluruh item tepat satu kali.
+     */
+    public function decline_request($request_id, $notes = '') {
+        $request_id = (int)$request_id;
+        if ($request_id <= 0) {
+            return false;
+        }
+
+        $this->db->trans_begin();
+
+        $request = $this->db->query("SELECT * FROM requests WHERE id = ? FOR UPDATE", [$request_id])->row_array();
+        if (!$request) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        // Cegah penolakan berulang pada request yang sudah final
+        if (in_array($request['status'], ['Declined', 'Cancelled', 'Completed', 'BAKK', 'BAKK (RUSAK)', 'BAKK (HILANG)'])) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        // Kembalikan stok item yang belum di-restore
+        $items = $this->db->query("SELECT * FROM request_items WHERE request_id = ? AND stock_restored = 0 FOR UPDATE", [$request_id])->result_array();
+        if (!empty($items)) {
+            foreach ($items as $item) {
+                $tool_id = (int)$item['tool_id'];
+                $qty = (int)$item['qty_requested'];
+                if ($tool_id > 0 && $qty > 0) {
+                    $this->db->set('quantity', 'quantity + ' . $qty, FALSE);
+                    $this->db->where('id', $tool_id);
+                    $this->db->update('tools');
+
+                    $this->db->where('id', $item['id']);
+                    $this->db->update('request_items', [
+                        'stock_restored' => 1,
+                        'qty_returned'   => 0
+                    ]);
+                }
+            }
+        } else {
+            // Legacy row fallback
+            $has_items = $this->db->get_where('request_items', ['request_id' => $request_id])->num_rows();
+            if ($has_items == 0 && !empty($request['tool_id']) && !empty($request['qty_requested'])) {
+                $this->return_tool_stock($request['tool_id'], $request['qty_requested']);
+            }
+        }
+
+        $data_update = ['status' => 'Declined'];
+        if (!empty($notes)) {
+            $data_update['notes'] = $notes;
+        }
+        $this->db->where('id', $request_id);
+        $this->db->update('requests', $data_update);
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return false;
+        }
+
+        $this->db->trans_commit();
+        return true;
+    }
+
+    /**
+     * Memproses inspeksi pengembalian alat per item secara atomik dalam satu database transaction.
+     * Tidak ada default condition 'good', wajib eksplisit good/broken/lost.
+     * Hanya item 'good' yang mengembalikan stok. Item broken/lost dicatat ke BAKK.
+     */
+    public function validate_return_inspection($request_id, $item_conditions, $item_notes = [], $general_notes = '') {
+        $request_id = (int)$request_id;
+        if ($request_id <= 0 || !is_array($item_conditions) || empty($item_conditions)) {
+            return ['status' => false, 'message' => 'Data inspeksi tidak valid atau kosong.'];
+        }
+
+        $this->db->trans_begin();
+
+        // 1. Kunci baris request
+        $request = $this->db->query("SELECT * FROM requests WHERE id = ? FOR UPDATE", [$request_id])->row_array();
+        if (!$request) {
+            $this->db->trans_rollback();
+            return ['status' => false, 'message' => 'Data permohonan tidak ditemukan.'];
+        }
+
+        if ($request['status'] !== 'Returned') {
+            $this->db->trans_rollback();
+            return ['status' => false, 'message' => 'Permohonan harus berstatus Returned untuk dapat diinspeksi. Status saat ini: ' . $request['status']];
+        }
+
+        // 2. Kunci dan ambil seluruh item yang terdaftar pada request ini
+        $req_items = $this->db->query("SELECT * FROM request_items WHERE request_id = ? FOR UPDATE", [$request_id])->result_array();
+        if (empty($req_items)) {
+            $this->db->trans_rollback();
+            return ['status' => false, 'message' => 'Rincian item permohonan tidak ditemukan.'];
+        }
+
+        $valid_item_ids = array_column($req_items, 'id');
+
+        // 3. Validasi ketat: Seluruh item ID yang dikirim harus valid dan cocok dengan request ini
+        $submitted_item_ids = array_keys($item_conditions);
+        foreach ($submitted_item_ids as $s_id) {
+            if (!in_array($s_id, $valid_item_ids)) {
+                $this->db->trans_rollback();
+                return ['status' => false, 'message' => 'Item ID tidak valid atau tidak termasuk dalam permohonan ini.'];
+            }
+        }
+
+        // Setiap item terdaftar WAJIB memiliki status kondisi yang eksplisit
+        foreach ($valid_item_ids as $v_id) {
+            if (!isset($item_conditions[$v_id])) {
+                $this->db->trans_rollback();
+                return ['status' => false, 'message' => 'Setiap alat wajib memiliki hasil inspeksi yang eksplisit.'];
+            }
+            $cond = trim($item_conditions[$v_id]);
+            if (!in_array($cond, ['good', 'broken', 'lost'], true)) {
+                $this->db->trans_rollback();
+                return ['status' => false, 'message' => 'Kondisi alat tidak valid. Pilihan hanya Baik, Rusak, atau Hilang.'];
+            }
+        }
+
+        // 4. Proses inspeksi item per item
+        $has_broken_or_lost = false;
+        foreach ($req_items as $item) {
+            $item_id = $item['id'];
+            $cond = trim($item_conditions[$item_id]);
+            $note_item = isset($item_notes[$item_id]) ? trim($item_notes[$item_id]) : '';
+            if (empty($note_item)) {
+                $note_item = $general_notes;
+            }
+
+            if ($cond === 'good') {
+                // Item BAIK: kembalikan stok hanya jika belum pernah di-restore
+                if ($item['stock_restored'] == 0) {
+                    $this->db->set('quantity', 'quantity + ' . (int)$item['qty_requested'], FALSE);
+                    $this->db->where('id', $item['tool_id']);
+                    $this->db->update('tools');
+                }
+
+                $this->db->where('id', $item_id);
+                $this->db->update('request_items', [
+                    'qty_returned'     => (int)$item['qty_requested'],
+                    'return_condition' => 'good',
+                    'stock_restored'   => 1
+                ]);
+            } else {
+                // Item RUSAK atau HILANG: Jangan kembalikan stok, catat ke BAKK
+                $has_broken_or_lost = true;
+                $status_bakk = ($cond === 'broken') ? 'RUSAK' : 'HILANG';
+
+                $this->db->where('id', $item_id);
+                $this->db->update('request_items', [
+                    'qty_returned'     => 0,
+                    'return_condition' => $cond,
+                    'stock_restored'   => 0
+                ]);
+
+                // Buat atau perbarui catatan di tabel bakk
+                $existing_bakk = $this->db->get_where('bakk', [
+                    'request_id' => $request_id,
+                    'tool_id'    => $item['tool_id']
+                ])->row_array();
+
+                if ($existing_bakk) {
+                    $this->db->where('id', $existing_bakk['id']);
+                    $this->db->update('bakk', [
+                        'condition_status' => $status_bakk,
+                        'notes'            => $note_item
+                    ]);
+                } else {
+                    $this->db->insert('bakk', [
+                        'request_id'       => $request_id,
+                        'tool_id'          => $item['tool_id'],
+                        'condition_status' => $status_bakk,
+                        'upload_status'    => 'Pending Upload',
+                        'notes'            => $note_item
+                    ]);
+                }
+            }
+        }
+
+        // 5. Update status header request
+        $final_status = $has_broken_or_lost ? 'BAKK' : 'Completed';
+        $req_update = [
+            'status'             => $final_status,
+            'return_date_actual' => date('Y-m-d H:i:s')
+        ];
+        if (!empty($general_notes)) {
+            $req_update['notes'] = $general_notes;
+        }
+
+        $this->db->where('id', $request_id);
+        $this->db->update('requests', $req_update);
+
+        if ($this->db->trans_status() === FALSE) {
+            $this->db->trans_rollback();
+            return ['status' => false, 'message' => 'Gagal memperbarui status transaksi inspeksi di database.'];
+        }
+
+        $this->db->trans_commit();
+        return ['status' => true, 'final_status' => $final_status];
     }
 
     public function update_request_item($item_id, $data) {
@@ -396,7 +659,7 @@ public function generate_request_number() {
         $notifs = [];
         
         if ($role == 'master' || $role == 'admin' || $role == 'supervisor' || $role == 'spv') { 
-            $this->db->where_in('status', ['Submitted', 'Returned', 'Waiting Approval']);
+            $this->db->where_in('status', ['Submitted', 'Returned', 'Waiting Approval', 'Approved']);
             $this->db->order_by('id', 'DESC');
             $query = $this->db->get('requests')->result_array();
             
@@ -417,6 +680,12 @@ public function generate_request_number() {
                     $notifs[] = [
                         'icon' => 'fas fa-user-check text-warning',
                         'text' => $q['request_number'] . ' Need SPV Approval',
+                        'link' => site_url('dashboard')
+                    ];
+                } else if ($q['status'] == 'Approved' && ($role == 'master' || $role == 'admin')) {
+                    $notifs[] = [
+                        'icon' => 'fas fa-truck text-success',
+                        'text' => $q['request_number'] . ' Approved - Need Shipping',
                         'link' => site_url('dashboard')
                     ];
                 }

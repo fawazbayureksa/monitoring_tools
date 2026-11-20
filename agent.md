@@ -54,25 +54,31 @@ Every request follows a deterministic finite state machine:
           │ Status: 'Submitted'
           ▼
 [Toolkeeper Validation (#modal-submitted)]
-   ├─ (Local / Workshop Destination) ──> Action: 'release' ────────┐
-   └─ (Destination contains 'SITE')  ──> Action: 'send_supervisor'  │
-                                                │ Status:           │
-                                                │ 'Waiting Approval'│
-                                                ▼                   │
-                                      [Supervisor Approval]         │
-                                         ├─ Action: 'cancel'        │
-                                         │  └─ Status: 'Declined'   │
-                                         │     (Restores Stock)     │
-                                         └─ Action: 'approve_spv'   │
-                                                │ Status:           │
-                                                │ 'Waiting Received'│
-                                                │ shipped_at = NOW()│
-                                                ▼ <─────────────────┘
+   ├─ (Workshop Destination) ───────> Action: 'release' ───────────────┐
+   └─ (Destination contains 'SITE')  ──> Action: 'send_supervisor'      │
+                                                │ Status:              │
+                                                │ 'Waiting Approval'   │
+                                                ▼                      │
+                                      [Supervisor Approval]            │
+                                         ├─ Action: 'cancel'           │
+                                         │  └─ Status: 'Declined'      │
+                                         │     (Restores Stock 1x)     │
+                                         └─ Action: 'approve_spv'      │
+                                                │ Status: 'Approved'   │
+                                                ▼                      │
+                                      [Toolkeeper Shipping]            │
+                                         Action: 'ship'                │
+                                         Upload: shipping_receipt      │
+                                                │ Status:              │
+                                                │ 'Waiting Received'   │
+                                                │ shipped_at = NOW()   │
+                                                ▼ <────────────────────┘
                                       [Delivery to Site (In-Transit)]
                                                 │
                                                 ▼
                                       [Recipient Confirms Physical Receipt]
                                          Action: 'receive'
+                                         Upload: received_proof
                                                 │ Status: 'Borrowed'
                                                 ▼
                                       [Tool In-Use (Return Reminders Active)]
@@ -83,12 +89,14 @@ Every request follows a deterministic finite state machine:
                                                 │ Status: 'Returned'
                                                 │ return_date_actual = NOW()
                                                 ▼
-                                      [Toolkeeper Return Validation (#modal-returned)]
+                                      [Toolkeeper Return Inspection (#modal-returned)]
                                          Action: 'validate_return'
-                                         ├─ Condition: 'good'
-                                         │  └─ Status: 'Completed' (Stock +1)
-                                         └─ Condition: 'broken' / 'lost'
-                                            └─ Status: 'BAKK' (Records in `bakk`, Stock not restored)
+                                         ├─ Item Condition: 'good' ────> Stock Restored (stock_restored = 1)
+                                         ├─ Item Condition: 'broken' ──> BAKK Record (Stock NOT restored)
+                                         └─ Item Condition: 'lost' ────> BAKK Record (Stock NOT restored)
+                                                │
+                                                ├─ If ALL items good: Status 'Completed'
+                                                └─ If ANY broken/lost: Status 'BAKK'
 ```
 
 ### Detailed State Descriptions
@@ -96,25 +104,28 @@ Every request follows a deterministic finite state machine:
    - Created via `Request_tools::submit()`.
    - Tool stock is immediately decremented (`tools.quantity - qty_requested`) to avoid double-borrowing.
 2. **`Waiting Approval`** (UI: `Waiting SPV`):
-   - Triggered when destination contains `"SITE"`.
-   - Toolkeeper prepares the tool and clicks "Send to Supervisor".
+   - Triggered when destination contains `"SITE"` via `send_supervisor`.
    - Locked for Toolkeeper & Leader; interactive button `Approve SPV` shown only to `supervisor` and `master`.
-3. **`Waiting Received`**:
-   - Tool is in delivery. `requests.shipped_at` is stamped.
-   - Resi pengiriman diunggah oleh Toolkeeper/Admin (pada `release` untuk pengiriman langsung, atau pada `send_supervisor` saat diajukan ke SPV). SPV meninjau resi tersebut dan memberikan persetujuan tanpa perlu upload ulang.
+   - No shipping receipts can be uploaded at this stage.
+3. **`Approved`**:
+   - SPV approves the entire request via `approve_spv`.
+   - Returns to Toolkeeper/Admin dashboard to upload shipping receipt and confirm dispatch.
+4. **`Waiting Received`**:
+   - Tool is in delivery. `requests.shipped_at` is stamped upon `ship` confirmation.
+   - Resi pengiriman (`shipping_receipt`) wajib diunggah oleh Toolkeeper/Admin pada action `ship`.
    - Automatically counted in dashboard widget **"Delivery to Site"** (`TIMESTAMPDIFF` against SLA, default 2 days).
    - Recipient Leader at site clicks `Receive Tool` which opens `#modal-receive-tool`, requiring upload of physical receipt proof (`received_proof`) to `assets/uploads/received_proof/` and optional receipt notes before transitioning to `Borrowed`.
-4. **`Borrowed`**:
+5. **`Borrowed`**:
    - Physical tool is with borrower.
    - Automatically monitored for due dates via widget **"Need to Return"** based on `requests.return_date_est`.
-5. **`Returned`**:
-   - Tool handed back to warehouse. Pending physical inspection by Toolkeeper.
-6. **`Completed`**:
-   - Physical condition confirmed "Good". Quantity restored to warehouse. Archived.
-7. **`Declined`**:
-   - Request rejected by Toolkeeper or Supervisor. Stock automatically refunded to `tools.quantity`. Leader notified.
-8. **`BAKK`**:
-   - Tool damaged or lost. Requires incident document upload in `bakk` module. Stock remains un-restored.
+6. **`Returned`**:
+   - Tool handed back to warehouse. Pending physical item-level inspection by Toolkeeper.
+7. **`Completed`**:
+   - All physical items confirmed "Good". Quantity restored to warehouse. Archived.
+8. **`Declined`**:
+   - Request rejected by Toolkeeper or Supervisor. Stock automatically refunded to `tools.quantity` idempotently. Leader notified.
+9. **`BAKK`**:
+   - One or more items damaged or lost during return inspection. Requires incident document upload in `bakk` module. Damaged/lost item stock remains un-restored.
 
 ---
 
