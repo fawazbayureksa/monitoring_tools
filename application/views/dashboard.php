@@ -453,6 +453,10 @@
             <button class="btn btn-sm btn-warning" disabled><i class="feather icon-loader"></i> Processing</button>
         <?php elseif ($req['status'] == 'Declined'): ?>
             <button class="btn btn-sm btn-danger" disabled><i class="feather icon-slash"></i> Declined</button>
+        <?php elseif ($req['status'] == 'Completed' || strpos(strtoupper($req['status']), 'BAKK') !== false): ?>
+            <a href="<?= site_url('history/download_pdf/' . $req['id']) ?>" class="btn btn-sm btn-outline-danger shadow-sm font-weight-bold" title="Download Form Peminjaman Tools (PDF)" target="_blank">
+                <i class="feather icon-file-text mr-1"></i> Form PDF
+            </a>
         <?php endif; ?>
         
     <?php endif; ?> 

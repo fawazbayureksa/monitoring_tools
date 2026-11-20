@@ -1,8 +1,12 @@
 <?php
 defined('BASEPATH') OR exit('No direct script access allowed');
 
-if (!class_exists('FPDF') && file_exists(FCPATH . 'vendor/autoload.php')) {
-    require_once FCPATH . 'vendor/autoload.php';
+if (!class_exists('FPDF')) {
+    if (file_exists(APPPATH . 'third_party/fpdf/fpdf.php')) {
+        require_once APPPATH . 'third_party/fpdf/fpdf.php';
+    } elseif (file_exists(FCPATH . 'vendor/autoload.php')) {
+        require_once FCPATH . 'vendor/autoload.php';
+    }
 }
 
 class Pdf_borrowing_form extends FPDF {
