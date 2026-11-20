@@ -99,6 +99,11 @@ class History extends CI_Controller {
         $items = $this->M_Requests->get_request_items($request_id);
 
         // 5. Inisialisasi library PDF dan generate output download
+        if (!class_exists('FPDF') && !file_exists(APPPATH . 'third_party/fpdf/fpdf.php') && !file_exists(FCPATH . 'vendor/autoload.php')) {
+            echo "<script>alert('Library FPDF belum tersedia di server. Pastikan folder application/third_party/fpdf/ atau vendor/autoload.php tersedia.'); window.history.back();</script>";
+            return;
+        }
+
         $this->load->library('pdf_borrowing_form');
         $this->pdf_borrowing_form->set_data($request, $items);
 
