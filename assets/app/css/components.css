@@ -1,0 +1,177 @@
+/* ==========================================================================
+   Components — reusable UI pieces (alert, field, button)
+   ========================================================================== */
+
+/* ---------- Alert ---------- */
+.alert {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    border-radius: var(--radius);
+}
+
+.alert__icon {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+.alert--danger {
+    color: var(--color-danger);
+    background: var(--color-danger-bg);
+    border: 1px solid var(--color-danger-border);
+    animation: shake .4s ease;
+}
+
+/* ---------- Form field ---------- */
+.field {
+    margin-bottom: 18px;
+}
+
+.field__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: var(--fs-sm);
+    font-weight: 500;
+}
+
+.field__control {
+    position: relative;
+}
+
+.field__input {
+    width: 100%;
+    height: var(--control-height);
+    padding: 0 44px;
+    font-size: var(--fs-base);
+    color: var(--color-text);
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color var(--ease), box-shadow var(--ease), background var(--ease);
+}
+
+.field__input::placeholder {
+    color: var(--color-subtle);
+}
+
+.field__input:focus {
+    background: var(--color-surface);
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 4px var(--color-brand-soft);
+}
+
+.field__icon {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    width: 18px;
+    height: 18px;
+    color: var(--color-subtle);
+    transform: translateY(-50%);
+    pointer-events: none;
+    transition: color var(--ease);
+}
+
+.field__input:focus ~ .field__icon {
+    color: var(--color-brand);
+}
+
+.field__action {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    color: var(--color-subtle);
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-sm);
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.field__action:hover {
+    color: var(--color-text);
+    background: #f1f5f9;
+}
+
+.field__action svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ---------- Checkbox ---------- */
+.checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--fs-sm);
+    color: var(--color-muted);
+    cursor: pointer;
+}
+
+.checkbox input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-brand);
+}
+
+/* ---------- Button ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: var(--control-height);
+    padding: 0 20px;
+    font-size: var(--fs-base);
+    font-weight: 600;
+    border: 0;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: transform .15s, box-shadow var(--ease), opacity var(--ease);
+}
+
+.btn--block {
+    width: 100%;
+}
+
+.btn--primary {
+    color: #fff;
+    background: linear-gradient(180deg, var(--color-brand), var(--color-brand-600));
+    box-shadow: var(--shadow-brand);
+}
+
+.btn--primary:hover {
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: .7;
+    cursor: wait;
+}
+
+.btn__icon {
+    width: 18px;
+    height: 18px;
+}
+
+.btn__spinner {
+    display: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, .4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+
+.btn.is-loading .btn__spinner { display: inline-block; }
+.btn.is-loading .btn__icon    { display: none; }

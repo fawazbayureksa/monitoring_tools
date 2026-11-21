@@ -7,14 +7,21 @@ class About extends CI_Controller {
     {
         parent::__construct();
         $this->load->helper('url');
+
+        if (!$this->session->userdata('logged_in')) {
+            redirect('auth');
+        }
     }
 
     public function index()
     {
-        $data['title'] = 'About'; 
+        $data['title']     = 'About';
+        $data['page_css']  = ['assets/app/css/pages/about.css'];
+        $data['page_js']   = ['assets/app/js/pages/about.js'];
+
         $this->load->view('templates/header', $data);
         $this->load->view('templates/sidebar');
-        $this->load->view('about'); 
-        $this->load->view('templates/footer');
+        $this->load->view('About');
+        $this->load->view('templates/footer', $data);
     }
 }

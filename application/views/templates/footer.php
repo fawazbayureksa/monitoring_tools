@@ -253,5 +253,11 @@ $(function () {
     
   });
 </script>
+<script src="<?= base_url('assets/app/js/layout.js') ?>"></script>
+<?php if (!empty($page_js) && is_array($page_js)): ?>
+    <?php foreach ($page_js as $jsFile): ?>
+        <script src="<?= base_url($jsFile) ?>"></script>
+    <?php endforeach; ?>
+<?php endif; ?>
 </body>
 </html>

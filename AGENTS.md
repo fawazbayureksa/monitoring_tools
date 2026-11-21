@@ -3,7 +3,8 @@
 > **Project**: Monitoring Tools — PT. United Tractors Tbk. (Cabang Ujung Pandang)  
 > **Framework**: CodeIgniter 3.x (PHP 7.4 / 8.x)  
 > **Database**: MySQL / MariaDB (`monitoring_tools`)  
-> **Frontend**: Able Pro / Bootstrap 4, Feather Icons, DataTables, FontAwesome  
+> **Frontend (legacy)**: Able Pro / Bootstrap 4, Feather Icons, DataTables, FontAwesome  
+> **Frontend (new)**: Custom design system in `assets/app/` — see [FRONTEND_RULES.md](FRONTEND_RULES.md)  
 
 This document serves as the single source of truth for AI agents (and human developers) working on the **Monitoring Tools** repository.
 
@@ -155,7 +156,6 @@ Every request follows a deterministic finite state machine:
 - **`M_Tools.php`**: Inventory data queries.
 - **`M_User.php`**: User management queries.
 - **`M_Auth.php`**: Credentials verification.
-- **`M_Auth.php`**: Credentials verification.
 
 ### Views (`application/views/`)
 - **[dashboard.php](file:///Users/fawwazbayureksa/Documents/project/akbar/monitoring_tools/application/views/dashboard.php)**:
@@ -223,3 +223,8 @@ When modifying this repository, follow these rules:
    - **Authorization**: Mechanics/leaders can download only their own requests; Supervisors, Admins, and Master can download any request.
 
 
+9. **Frontend / UI (MANDATORY)**: Follow **[FRONTEND_RULES.md](FRONTEND_RULES.md)** for every new or rebuilt view.
+   - Always keep CSS/JS in separate files under `assets/app/` — no inline `<style>`, `style=""`, or inline `<script>` in views.
+   - Use design tokens from `assets/app/css/tokens.css`; BEM class naming; vanilla JS in IIFEs.
+   - Do NOT edit legacy template files (`assets/css/style.css`, `assets/css/plugins/*`, `pcoded.min.js`); migrate page by page instead.
+   - Reference implementation: `application/views/login.php`.

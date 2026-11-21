@@ -13,6 +13,15 @@
     <link rel="stylesheet" href="<?= base_url('assets/plugins/select2/css/select2.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/plugins/daterangepicker/daterangepicker.css') ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="<?= base_url('assets/app/css/tokens.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/app/css/layout.css') ?>">
+    <?php if (!empty($page_css) && is_array($page_css)): ?>
+        <?php foreach ($page_css as $cssFile): ?>
+            <link rel="stylesheet" href="<?= base_url($cssFile) ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
     
     <style>
         .fixed-button, .buy-pro, a[href*="envato.market"] { display: none !important; }
